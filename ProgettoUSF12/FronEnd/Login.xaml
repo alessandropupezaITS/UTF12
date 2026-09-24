@@ -1,0 +1,146 @@
+<Page x:Class="ProgettoUSF12.FrontEnd.Login"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:frontend="using:ProgettoUSF12.FrontEnd"
+      mc:Ignorable="d">
+
+    <Page.Resources>
+        <!-- Stessi stili/colori "Star Wars" usati in MainPage e PaginaFilm, per coerenza -->
+        <SolidColorBrush x:Key="OroSW" Color="#FFE81F"/>
+        <SolidColorBrush x:Key="OroSWTenue" Color="#80FFE81F"/>
+
+        <AcrylicBrush x:Key="VetroPannello"
+                      BackgroundSource="Backdrop"
+                      TintColor="#050505"
+                      TintOpacity="0.25"
+                      FallbackColor="#141414"/>
+    </Page.Resources>
+
+    <Grid>
+        <!-- Sfondo stellato a tutta pagina, come in Home -->
+        <Grid.Background>
+            <ImageBrush ImageSource="ms-appx:///Assets/sfondoHome.webp" Stretch="UniformToFill"/>
+        </Grid.Background>
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Barra superiore, comune a tutte le pagine -->
+        <frontend:BarraSuperiore Grid.Row="0"/>
+
+        <!-- Pannello di accesso centrato, vetro liquido come le altre pagine -->
+        <Border Grid.Row="1"
+                Width="380"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Background="{StaticResource VetroPannello}"
+                BorderBrush="{StaticResource OroSWTenue}"
+                BorderThickness="1"
+                CornerRadius="24"
+                Padding="32">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Titolo (cambia in base alla modalità: Accedi / Registrati) -->
+                <TextBlock x:Name="TxtTitolo"
+                           Text="ACCEDI"
+                           FontSize="28"
+                           FontWeight="Black"
+                           CharacterSpacing="20"
+                           Foreground="{StaticResource OroSW}"
+                           Margin="0,0,0,24"
+                           Grid.Row="0"/>
+
+                <!-- Username -->
+                <TextBlock Text="Nome utente"
+                           Foreground="White"
+                           Grid.Row="1"
+                           Margin="0,0,0,4"/>
+                <TextBox x:Name="TxtUsername"
+                         Grid.Row="2"
+                         Height="34"
+                         Padding="8,4"
+                         Margin="0,0,0,16"/>
+
+                <!-- Password -->
+                <TextBlock Text="Password"
+                           Foreground="White"
+                           Grid.Row="3"
+                           Margin="0,0,0,4"/>
+                <PasswordBox x:Name="TxtPassword"
+                             Grid.Row="4"
+                             Height="34"
+                             Padding="8,4"
+                             Margin="0,0,0,16"/>
+
+                <!-- Conferma Password: visibile solo in modalità Registrati -->
+                <TextBlock x:Name="LblConfermaPassword"
+                           Text="Conferma Password"
+                           Foreground="White"
+                           Grid.Row="5"
+                           Margin="0,0,0,4"
+                           Visibility="Collapsed"/>
+                <PasswordBox x:Name="TxtConfermaPassword"
+                             Grid.Row="6"
+                             Height="34"
+                             Padding="8,4"
+                             Margin="0,0,0,16"
+                             Visibility="Collapsed"/>
+
+                <!-- Checkbox salvataggio offline -->
+                <CheckBox x:Name="ChkSalvaOffline"
+                          Content="Salva i dati per uso offline"
+                          Foreground="White"
+                          IsChecked="True"
+                          Grid.Row="7"
+                          Margin="0,0,0,8"/>
+
+                <!-- Messaggio errore -->
+                <TextBlock x:Name="TxtErrore"
+                           Foreground="#FF6B6B"
+                           TextWrapping="Wrap"
+                           Visibility="Collapsed"
+                           Grid.Row="8"
+                           Margin="0,4,0,16"/>
+
+                <!-- Bottone principale + link toggle Accedi/Registrati -->
+                <StackPanel Grid.Row="9">
+                    <Button x:Name="BtnConferma"
+                            Content="Accedi"
+                            Height="38"
+                            FontSize="14"
+                            FontWeight="SemiBold"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Center"
+                            Background="{StaticResource OroSW}"
+                            Foreground="Black"
+                            Margin="0,0,0,16"
+                            Click="BtnConferma_Click"/>
+
+                    <TextBlock HorizontalAlignment="Center">
+                        <Hyperlink x:Name="LinkToggleModalita" Click="LinkToggleModalita_Click">
+                            <Run x:Name="TxtLinkToggle"
+                                 Text="Non hai un account? Registrati"
+                                 Foreground="{StaticResource OroSWTenue}"/>
+                        </Hyperlink>
+                    </TextBlock>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Page>

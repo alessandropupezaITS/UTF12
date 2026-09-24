@@ -1,0 +1,154 @@
+<Page
+    x:Class="ProgettoUSF12.PaginaFilm"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:ProgettoUSF12"
+    xmlns:frontend="using:ProgettoUSF12.FrontEnd"
+    xmlns:classi="using:ProgettoUSF12.BackEnd.Classi"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <!-- Stessi stili/colori "Star Wars" usati in MainPage, per coerenza -->
+        <SolidColorBrush x:Key="OroSW" Color="#FFE81F"/>
+        <SolidColorBrush x:Key="OroSWTenue" Color="#80FFE81F"/>
+
+        <AcrylicBrush x:Key="VetroPannello"
+                      BackgroundSource="Backdrop"
+                      TintColor="#050505"
+                      TintOpacity="0.25"
+                      FallbackColor="#141414"/>
+
+        <AcrylicBrush x:Key="VetroTile"
+                      BackgroundSource="Backdrop"
+                      TintColor="#050505"
+                      TintOpacity="0.20"
+                      FallbackColor="#1F1F1F"/>
+    </Page.Resources>
+
+    <Grid>
+        <!-- Sfondo stellato a tutta pagina, come in Home -->
+        <Grid.Background>
+            <ImageBrush ImageSource="ms-appx:///Assets/sfondoHome.webp" Stretch="UniformToFill"/>
+        </Grid.Background>
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Barra superiore, comune a tutte le pagine -->
+        <frontend:BarraSuperiore Grid.Row="0"/>
+
+        <!-- Titolo della pagina -->
+        <TextBlock Grid.Row="1"
+                   Text="FILM"
+                   FontSize="44"
+                   FontWeight="Black"
+                   CharacterSpacing="40"
+                   Foreground="{StaticResource OroSW}"
+                   Margin="32,24,0,16"/>
+
+        <!-- Pannello unico a tutta larghezza: chip categorie + elenco film -->
+        <Border Grid.Row="2"
+                Margin="32,0,32,24"
+                Background="{StaticResource VetroPannello}"
+                BorderBrush="{StaticResource OroSWTenue}"
+                BorderThickness="1"
+                CornerRadius="24"
+                Padding="20">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Chip categorie: Tutti, Prima Trilogia, Seconda Trilogia... -->
+                <!-- "Tutti" è sempre il primo (lo mette GestioneHome.OttieniCategorieAsync)
+                     e porta qui senza alcun filtro attivo -->
+                <ListView x:Name="ListaCategorie"
+                          Grid.Row="0"
+                          SelectionMode="None"
+                          IsItemClickEnabled="True"
+                          ItemClick="ListaCategorie_ItemClick"
+                          Background="Transparent"
+                          Margin="0,0,0,16">
+                    <ListView.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ListView.ItemsPanel>
+                    <ListView.ItemTemplate>
+                        <DataTemplate x:DataType="x:String">
+                            <Border Background="{StaticResource VetroTile}"
+                                    BorderBrush="{StaticResource OroSWTenue}"
+                                    BorderThickness="1"
+                                    CornerRadius="16"
+                                    Padding="16,8"
+                                    Margin="0,0,8,0">
+                                <TextBlock Text="{x:Bind}"
+                                           Foreground="White"
+                                           FontWeight="SemiBold"/>
+                            </Border>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+
+                <!-- Elenco film raggruppato per trilogia, con locandina -->
+                <ListView x:Name="ListaFilm"
+                          Grid.Row="1"
+                          SelectionMode="None"
+                          Background="Transparent">
+                    <ListView.ItemTemplate>
+                        <DataTemplate x:DataType="classi:GruppoFilm">
+                            <StackPanel Margin="0,0,0,24">
+                                <TextBlock Text="{x:Bind Titolo}"
+                                           Foreground="{StaticResource OroSW}"
+                                           FontSize="16"
+                                           FontWeight="SemiBold"
+                                           CharacterSpacing="20"
+                                           Margin="0,0,0,12"/>
+
+                                <GridView ItemsSource="{x:Bind Film}"
+                                          SelectionMode="None"
+                                          IsItemClickEnabled="True"
+                                          ItemClick="ListaFilm_ItemClick"
+                                          Background="Transparent">
+                                    <GridView.ItemTemplate>
+                                        <DataTemplate x:DataType="classi:Film">
+                                            <Border Background="{StaticResource VetroTile}"
+                                                    BorderBrush="{StaticResource OroSWTenue}"
+                                                    BorderThickness="1"
+                                                    CornerRadius="16"
+                                                    Width="130"
+                                                    Margin="0,0,12,12">
+                                                <StackPanel>
+                                                    <Image Source="{x:Bind PosterUrl}"
+                                                           Height="170"
+                                                           Stretch="UniformToFill"/>
+                                                    <TextBlock Text="{x:Bind Title}"
+                                                               Foreground="White"
+                                                               FontSize="12"
+                                                               TextWrapping="Wrap"
+                                                               TextAlignment="Center"
+                                                               Margin="6,6,6,8"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </GridView.ItemTemplate>
+                                    <GridView.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <ItemsWrapGrid Orientation="Horizontal"/>
+                                        </ItemsPanelTemplate>
+                                    </GridView.ItemsPanel>
+                                </GridView>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </Grid>
+        </Border>
+    </Grid>
+</Page>

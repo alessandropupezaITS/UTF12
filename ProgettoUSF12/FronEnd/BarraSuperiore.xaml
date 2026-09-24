@@ -1,0 +1,62 @@
+<UserControl
+    x:Class="ProgettoUSF12.FrontEnd.BarraSuperiore"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:ProgettoUSF12.FrontEnd"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <UserControl.Resources>
+        <SolidColorBrush x:Key="OroSW" Color="#FFE81F"/>
+        <SolidColorBrush x:Key="OroSWTenue" Color="#40FFE81F"/>
+        <AcrylicBrush x:Key="VetroBarra"
+                      BackgroundSource="Backdrop"
+                      TintColor="#050505"
+                      TintOpacity="0.25"
+                      FallbackColor="#1F1F1F"/>
+    </UserControl.Resources>
+
+    <Grid Background="{StaticResource VetroBarra}" Height="72">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Titolo + separatore verticale, come nello schizzo -->
+        <StackPanel Grid.Column="0"
+                    Orientation="Horizontal"
+                    VerticalAlignment="Center"
+                    Margin="24,0,0,0">
+            <TextBlock Text="MENU PER I SERVIZI"
+                       FontSize="20"
+                       FontWeight="Bold"
+                       CharacterSpacing="20"
+                       Foreground="{StaticResource OroSW}"
+                       VerticalAlignment="Center"/>
+            <Rectangle Width="1"
+                       Height="36"
+                       Fill="{StaticResource OroSWTenue}"
+                       Margin="24,0,0,0"/>
+        </StackPanel>
+
+        <!-- Icona profilo a destra -->
+        <Button Grid.Column="1"
+                x:Name="ProfiloButton"
+                Background="Transparent"
+                BorderThickness="0"
+                Width="48" Height="48"
+                CornerRadius="24"
+                Margin="0,0,20,0"
+                 Click="BtnLogin_Click"
+                VerticalAlignment="Center">
+            <FontIcon Glyph="&#xE77B;" FontSize="24" Foreground="{StaticResource OroSW}"/>
+        </Button>
+
+        <!-- Linea di separazione sotto la barra -->
+        <Rectangle Grid.ColumnSpan="2"
+                   Height="1"
+                   VerticalAlignment="Bottom"
+                   Fill="{StaticResource OroSWTenue}"/>
+    </Grid>
+</UserControl>
