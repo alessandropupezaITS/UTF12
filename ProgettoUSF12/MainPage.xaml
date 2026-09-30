@@ -70,6 +70,7 @@
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
@@ -81,42 +82,108 @@
                                CharacterSpacing="20"
                                Margin="0,0,0,16"/>
 
-                    <!-- Griglia film: solo locandina + titolo, cliccabili -->
-                    <GridView x:Name="ListaFilm"
+                    <!-- NUOVO: chip categorie (stessi di PaginaFilm). Filtrano la griglia qui sotto. -->
+                    <ListView x:Name="ListaCategorie"
                               Grid.Row="1"
                               SelectionMode="None"
                               IsItemClickEnabled="True"
-                              ItemClick="ListaFilm_ItemClick"
-                              Background="Transparent">
-                        <GridView.ItemTemplate>
-                            <DataTemplate x:DataType="classi:Film">
+                              ItemClick="ListaCategorie_ItemClick"
+                              Background="Transparent"
+                              Margin="0,0,0,16">
+                        <ListView.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ListView.ItemsPanel>
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:DataType="x:String">
                                 <Border Background="{StaticResource VetroTile}"
                                         BorderBrush="{StaticResource OroSWTenue}"
                                         BorderThickness="1"
                                         CornerRadius="16"
-                                        Width="130"
-                                        Margin="0,0,12,12">
-                                    <StackPanel>
-                                        <Image Source="{x:Bind local:MainPage.ConvertiPoster(PosterUrl)}"
-                                               Height="170"
-                                               Stretch="UniformToFill"/>
-
-                                        <TextBlock Text="{x:Bind Title}"
-                                                   Foreground="White"
-                                                   FontSize="12"
-                                                   TextWrapping="Wrap"
-                                                   TextAlignment="Center"
-                                                   Margin="6,6,6,8"/>
-                                    </StackPanel>
+                                        Padding="16,8"
+                                        Margin="0,0,8,0">
+                                    <TextBlock Text="{x:Bind}"
+                                               Foreground="White"
+                                               FontWeight="SemiBold"/>
                                 </Border>
                             </DataTemplate>
-                        </GridView.ItemTemplate>
-                        <GridView.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <ItemsWrapGrid Orientation="Horizontal"/>
-                            </ItemsPanelTemplate>
-                        </GridView.ItemsPanel>
-                    </GridView>
+                        </ListView.ItemTemplate>
+                    </ListView>
+
+                    <!-- Sezioni per trilogia: titolo + griglia di 3 locandine per riga.
+                         Le dimensioni delle celle sono calcolate in GrigliaSezione_SizeChanged. -->
+                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                        <Grid>
+                            <ItemsControl x:Name="ListaSezioni">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="local:SezioneFilm">
+                                        <StackPanel Margin="0,0,0,16">
+                                            <TextBlock Text="{x:Bind Titolo}"
+                                                       Foreground="{StaticResource OroSW}"
+                                                       FontSize="20"
+                                                       FontWeight="SemiBold"
+                                                       Margin="0,4,0,8"/>
+                                            <GridView ItemsSource="{x:Bind Films}"
+                                                      SelectionMode="None"
+                                                      IsItemClickEnabled="True"
+                                                      ItemClick="ListaFilm_ItemClick"
+                                                      SizeChanged="GrigliaSezione_SizeChanged"
+                                                      ScrollViewer.VerticalScrollMode="Disabled"
+                                                      ScrollViewer.VerticalScrollBarVisibility="Hidden"
+                                                      Background="Transparent">
+                                                <GridView.ItemContainerStyle>
+                                                    <Style TargetType="GridViewItem">
+                                                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                                        <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+                                                        <Setter Property="Margin" Value="0"/>
+                                                    </Style>
+                                                </GridView.ItemContainerStyle>
+                                                <GridView.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <ItemsWrapGrid Orientation="Horizontal" MaximumRowsOrColumns="3"/>
+                                                    </ItemsPanelTemplate>
+                                                </GridView.ItemsPanel>
+                                                <GridView.ItemTemplate>
+                                                    <DataTemplate x:DataType="classi:Film">
+                                                        <Border Background="{StaticResource VetroTile}"
+                                                                BorderBrush="{StaticResource OroSWTenue}"
+                                                                BorderThickness="1"
+                                                                CornerRadius="16"
+                                                                Margin="0,0,12,12">
+                                                            <Grid>
+                                                                <Grid.RowDefinitions>
+                                                                    <RowDefinition Height="*"/>
+                                                                    <RowDefinition Height="Auto"/>
+                                                                </Grid.RowDefinitions>
+                                                                <Image Grid.Row="0"
+                                                                       Source="{x:Bind local:MainPage.ConvertiPoster(PosterUrl)}"
+                                                                       Stretch="UniformToFill"/>
+                                                                <TextBlock Grid.Row="1"
+                                                                           Text="{x:Bind Title}"
+                                                                           Foreground="White"
+                                                                           FontSize="12"
+                                                                           TextWrapping="Wrap"
+                                                                           TextAlignment="Center"
+                                                                           Margin="6,6,6,8"/>
+                                                            </Grid>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </GridView.ItemTemplate>
+                                            </GridView>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <TextBlock x:Name="NessunRisultato"
+                                       Text="Nessun film trovato"
+                                       Foreground="#B0B0B0"
+                                       Visibility="Collapsed"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,32,0,0"/>
+                        </Grid>
+                    </ScrollViewer>
                 </Grid>
             </Border>
 
