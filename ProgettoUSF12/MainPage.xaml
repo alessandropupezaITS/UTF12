@@ -97,11 +97,10 @@
                                         Width="130"
                                         Margin="0,0,12,12">
                                     <StackPanel>
-                                        <!--<Image Source="{x:Bind PosterUrl}"
+                                        <Image Source="{x:Bind local:MainPage.ConvertiPoster(PosterUrl)}"
                                                Height="170"
                                                Stretch="UniformToFill"/>
-                                         -->
-                                        
+
                                         <TextBlock Text="{x:Bind Title}"
                                                    Foreground="White"
                                                    FontSize="12"

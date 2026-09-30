@@ -23,11 +23,24 @@
             <ColumnDefinition Width="Auto"/>
         </Grid.ColumnDefinitions>
 
-        <!-- Titolo + separatore verticale, come nello schizzo -->
+        <!-- Tasto Home + titolo + separatore verticale, come nello schizzo -->
         <StackPanel Grid.Column="0"
                     Orientation="Horizontal"
                     VerticalAlignment="Center"
                     Margin="24,0,0,0">
+
+            <!-- NUOVO: tasto Home, porta alla MainPage -->
+            <Button x:Name="HomeButton"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Width="48" Height="48"
+                    CornerRadius="24"
+                    Margin="0,0,16,0"
+                    Click="BtnHome_Click"
+                    VerticalAlignment="Center">
+                <FontIcon Glyph="&#xE80F;" FontSize="24" Foreground="{StaticResource OroSW}"/>
+            </Button>
+
             <TextBlock Text="MENU PER I SERVIZI"
                        FontSize="20"
                        FontWeight="Bold"
@@ -48,7 +61,7 @@
                 Width="48" Height="48"
                 CornerRadius="24"
                 Margin="0,0,20,0"
-                 Click="BtnLogin_Click"
+                Click="BtnLogin_Click"
                 VerticalAlignment="Center">
             <FontIcon Glyph="&#xE77B;" FontSize="24" Foreground="{StaticResource OroSW}"/>
         </Button>

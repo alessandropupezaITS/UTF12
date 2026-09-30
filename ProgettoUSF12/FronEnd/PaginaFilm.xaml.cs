@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Media.Imaging;
 using Windows.UI.Xaml.Navigation;
 
 namespace ProgettoUSF12
@@ -88,5 +89,24 @@ namespace ProgettoUSF12
             >= 7 and <= 9 => "Terza Trilogia",
             _ => "Altri"
         };
+
+        // NUOVO: usato da {x:Bind local:PaginaFilm.ConvertiPoster(PosterUrl)} nel DataTemplate.
+        // Se PosterUrl è null/vuoto o non è un URL valido ritorna null: nessuna immagine,
+        // ma il tile (titolo) si disegna normalmente e l'app non crasha.
+        public static BitmapImage? ConvertiPoster(string? posterUrl)
+        {
+            if (string.IsNullOrWhiteSpace(posterUrl))
+                return null;
+
+            try
+            {
+                return new BitmapImage(new Uri(posterUrl));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"PosterUrl non valido ('{posterUrl}'): {ex.Message}");
+                return null;
+            }
+        }
     }
 }

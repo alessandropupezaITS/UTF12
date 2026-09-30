@@ -22,12 +22,19 @@ namespace ProgettoUSF12.BackEnd.Services
     //
     // Tutti i metodi sono SINCRONI e ritornano List<T> direttamente,
     // non Task<List<T>>: chi li chiama non scrive "await".
+    //
+    // NB IMPORTANTE: ogni chiamata _http.GetFromJsonAsync<T>(...) deve
+    // SEMPRE passare _jsonOptions come secondo parametro. Senza, usa la
+    // deserializzazione a reflection, che in questo progetto fallisce
+    // silenziosamente (try/catch la cattura, ritorna null/vuoto senza
+    // nessun errore visibile) — è il bug che ci ha già fatto perdere
+    // tempo sia per SWAPI che per il poster OMDb.
     // ============================================================
     public static class GestioneAPI
     {
         private const string SwapiBaseUrl = "https://swapi.dev/api/";
         private const string OmdbBaseUrl = "https://www.omdbapi.com/";
-        private const string OmdbApiKey = "LA_TUA_CHIAVE_OMDB_QUI"; // <-- inserisci qui la chiave ricevuta via email
+        private const string OmdbApiKey = "";  //e6ceb7e7 // <-- inserisci qui la chiave ricevuta via email
         private const string FandomBaseUrl = "https://starwars.fandom.com/api.php";
 
         private static readonly HttpClient _http = new HttpClient();
@@ -46,7 +53,7 @@ namespace ProgettoUSF12.BackEnd.Services
             foreach (var f in film)
             {
                 f.Id = SwapiIdConverter.ExtractId(f.Url);
-                f.PosterUrl = GetPosterOmdb(f.Title);
+                f.PosterUrl = GetPosterOmdb(f.EpisodeId);
             }
 
             return film;
@@ -69,7 +76,6 @@ namespace ProgettoUSF12.BackEnd.Services
             return personaggi;
         }
 
-        // Solo i personaggi che compaiono in un film specifico
         public static List<Personaggio> GetPersonaggiBy(Film film) =>
             GetPersonaggi().Where(p => film.PersonaggioIds.Contains(p.Id)).ToList();
 
@@ -90,7 +96,6 @@ namespace ProgettoUSF12.BackEnd.Services
             return pianeti;
         }
 
-        // Solo i pianeti che compaiono in un film specifico
         public static List<Pianeta> GetPianetiBy(Film film) =>
             GetPianeti().Where(p => film.PianetaIds.Contains(p.Id)).ToList();
 
@@ -111,7 +116,6 @@ namespace ProgettoUSF12.BackEnd.Services
             return razze;
         }
 
-        // Solo le razze che compaiono in un film specifico
         public static List<Razza> GetRazzeBy(Film film) =>
             GetRazze().Where(r => film.RazzaIds.Contains(r.Id)).ToList();
 
@@ -132,15 +136,11 @@ namespace ProgettoUSF12.BackEnd.Services
             return astronavi;
         }
 
-        // Solo le astronavi che compaiono in un film specifico
         public static List<Astronave> GetAstronaviBy(Film film) =>
             GetAstronavi().Where(a => film.AstronaveIds.Contains(a.Id)).ToList();
 
         // ===================== HELPER =====================
 
-        // Scarica tutte le pagine di un endpoint SWAPI (bloccante:
-        // aspetta subito il risultato con GetAwaiter().GetResult(),
-        // così il metodo pubblico non deve essere async)
         private static List<T> ScaricaTutto<T>(string endpointSwapi)
         {
             var risultati = new List<T>();
@@ -167,22 +167,40 @@ namespace ProgettoUSF12.BackEnd.Services
             return risultati;
         }
 
-        // Recupera l'URL del poster del film da OMDb (ricerca per titolo).
-        private static string? GetPosterOmdb(string title)
+        // ID IMDb di ciascun episodio: usarli invece del titolo evita mancati
+        // match quando il titolo salvato su OMDb non è identico a quello di
+        // SWAPI (es. "A New Hope" vs "Star Wars: Episode IV - A New Hope").
+        private static readonly Dictionary<int, string> _imdbIdPerEpisodio = new()
         {
+            { 1, "tt0120915" }, // The Phantom Menace
+            { 2, "tt0121765" }, // Attack of the Clones
+            { 3, "tt0121766" }, // Revenge of the Sith
+            { 4, "tt0076759" }, // A New Hope
+            { 5, "tt0080684" }, // The Empire Strikes Back
+            { 6, "tt0086190" }, // Return of the Jedi
+        };
+
+        // Recupera l'URL del poster del film da OMDb, cercando per ID IMDb
+        // (univoco) invece che per titolo (poteva non trovare match esatti).
+        private static string? GetPosterOmdb(int episodeId)
+        {
+            if (!_imdbIdPerEpisodio.TryGetValue(episodeId, out var imdbId))
+                return null;
+
             try
             {
-                var url = $"{OmdbBaseUrl}?apikey={OmdbApiKey}&t={Uri.EscapeDataString(title)}";
-                var risposta = _http.GetFromJsonAsync<OmdbResult>(url).GetAwaiter().GetResult();
+                var url = $"{OmdbBaseUrl}?apikey={OmdbApiKey}&i={imdbId}";
 
-                // OMDb ritorna la stringa "N/A" quando non ha un poster disponibile
+                var risposta = _http.GetFromJsonAsync<OmdbResult>(url, _jsonOptions)
+                    .GetAwaiter().GetResult();
+
                 return string.IsNullOrEmpty(risposta?.Poster) || risposta.Poster == "N/A"
                     ? null
                     : risposta.Poster;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Errore GetPosterOmdb('{title}'): {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Errore GetPosterOmdb(episodio {episodeId}): {ex.Message}");
                 return null;
             }
         }
@@ -195,7 +213,9 @@ namespace ProgettoUSF12.BackEnd.Services
                 var url = $"{FandomBaseUrl}?action=query&titles={Uri.EscapeDataString(name)}" +
                           "&prop=pageimages|images&format=json&pithumbsize=500";
 
-                var risposta = _http.GetFromJsonAsync<FandomQueryResult>(url).GetAwaiter().GetResult();
+                // FIX: stesso problema di GetPosterOmdb, mancava _jsonOptions.
+                var risposta = _http.GetFromJsonAsync<FandomQueryResult>(url, _jsonOptions)
+                    .GetAwaiter().GetResult();
 
                 var pagina = risposta?.Query?.Pages?.Values.FirstOrDefault();
                 var main = pagina?.Thumbnail?.Source;
@@ -213,7 +233,6 @@ namespace ProgettoUSF12.BackEnd.Services
             }
         }
 
-        // DTO minimo per deserializzare la risposta di OMDb
         internal class OmdbResult
         {
             [JsonPropertyName("Poster")]

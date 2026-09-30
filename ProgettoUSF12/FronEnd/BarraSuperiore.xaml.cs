@@ -10,7 +10,17 @@ namespace ProgettoUSF12.FrontEnd
             this.InitializeComponent();
         }
 
-       
+        // NUOVO: torna alla Home. Se siamo già sulla MainPage non fa nulla,
+        // così non si accumulano pagine identiche nello stack di navigazione.
+        private void BtnHome_Click(object sender, RoutedEventArgs e)
+        {
+            var rootFrame = Window.Current.Content as Frame;
+            if (rootFrame != null && rootFrame.Content is not MainPage)
+            {
+                rootFrame.Navigate(typeof(MainPage));
+            }
+        }
+
         private void BtnLogin_Click(object sender, RoutedEventArgs e)
         {
             // In UWP non si creano finestre separate per le pagine: si naviga nel Frame principale.

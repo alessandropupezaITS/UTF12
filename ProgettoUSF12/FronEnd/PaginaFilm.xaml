@@ -66,8 +66,6 @@
                 </Grid.RowDefinitions>
 
                 <!-- Chip categorie: Tutti, Prima Trilogia, Seconda Trilogia... -->
-                <!-- "Tutti" è sempre il primo (lo mette GestioneHome.OttieniCategorieAsync)
-                     e porta qui senza alcun filtro attivo -->
                 <ListView x:Name="ListaCategorie"
                           Grid.Row="0"
                           SelectionMode="None"
@@ -125,7 +123,9 @@
                                                     Width="130"
                                                     Margin="0,0,12,12">
                                                 <StackPanel>
-                                                    <Image Source="{x:Bind PosterUrl}"
+                                                    <!-- FIX: prima era {x:Bind PosterUrl} diretto, che va in
+                                                         eccezione quando PosterUrl è null. Ora passa da ConvertiPoster. -->
+                                                    <Image Source="{x:Bind local:PaginaFilm.ConvertiPoster(PosterUrl)}"
                                                            Height="170"
                                                            Stretch="UniformToFill"/>
                                                     <TextBlock Text="{x:Bind Title}"
