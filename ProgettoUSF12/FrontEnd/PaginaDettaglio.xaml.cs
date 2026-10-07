@@ -193,11 +193,7 @@ namespace ProgettoUSF12
         private readonly ObservableCollection<BitmapImage> _immagini = new();
         private readonly HashSet<string> _urlMostrati = new();
 
-        // DIAGNOSI TEMPORANEA: compare sotto il riquadro quando non ci sono immagini.
-        // Si toglie quando le immagini funzionano (vedi AggiornaContatore).
-        private string _diag = "";
-        private int _falliti;
-        private string _ultimoErrore = "";
+        private bool _haPrincipale;   // true se la foto principale (a sinistra) è impostata
 
         private SchedaDettaglio? _scheda;
         private TipoRicerca _categoria;
@@ -207,7 +203,7 @@ namespace ProgettoUSF12
         public PaginaDettaglio()
         {
             InitializeComponent();
-            Carosello.ItemsSource = _immagini;
+            GalleriaFoto.ItemsSource = _immagini;
             _immagini.CollectionChanged += (s, e) => AggiornaImmagini();
         }
 
@@ -288,6 +284,8 @@ namespace ProgettoUSF12
         {
             _immagini.Clear();
             _urlMostrati.Clear();
+            _haPrincipale = false;
+            ImgPrincipale.Source = null;
 
             if (s == null)
             {
@@ -304,13 +302,13 @@ namespace ProgettoUSF12
             ListaCollegamenti.ItemsSource = s.Collegamenti;
             BtnSalva.Visibility = Visibility.Visible;
 
-            _falliti = 0; _ultimoErrore = "";
-            _diag = $"offline={GestioneAPI.IsOffline} | principale={(string.IsNullOrEmpty(s.Immagine) ? "NESSUNA" : s.Immagine)} | titoli galleria={s.Galleria.Count}";
-            AggiungiImmagine(s.Immagine);   // prima slide = immagine principale
+            AggiungiImmagine(s.Immagine);   // la prima immagine diventa la foto principale
             AggiornaImmagini();
         }
 
-        // ===================== CAROSELLO =====================
+        // ===================== FOTO =====================
+        // La prima immagine è la foto principale (a sinistra, ImgPrincipale); le altre vanno nella
+        // griglia sotto le info (GalleriaFoto), ognuna intera.
 
         private async Task CaricaGalleriaAsync(SchedaDettaglio s)
         {
@@ -318,10 +316,8 @@ namespace ProgettoUSF12
 
             try
             {
-                var urls = await Task.Run(() => GestioneAPI.GetUrlGalleria(s.Nome, s.Galleria));
-                _diag += $" | URL risolti={urls.Count}";
+                var urls = await Task.Run(() => GestioneAPI.GetUrlGalleria(s.Nome, s.Galleria, 12));
                 foreach (var url in urls) AggiungiImmagine(url);
-                AggiornaContatore();
             }
             catch (Exception ex)
             {
@@ -331,38 +327,53 @@ namespace ProgettoUSF12
 
         private void AggiungiImmagine(string? url)
         {
-            // niente url o già presente -> non aggiungo nulla (nessun errore, nessuna slide vuota)
+            // niente url o già presente -> non aggiungo nulla
             if (string.IsNullOrWhiteSpace(url) || !_urlMostrati.Add(url)) return;
 
             var bmp = PaginaFilm.ConvertiPoster(url);
             if (bmp == null) return;
 
-            // Se l'immagine non si carica la tolgo dal carosello: meglio niente che una slide nera.
+            // Nessuna foto principale ancora: questa diventa la principale.
+            if (!_haPrincipale)
+            {
+                ImpostaPrincipale(bmp);
+                AggiornaImmagini();
+                return;
+            }
+
+            // Se l'immagine non si carica la tolgo: meglio niente che un riquadro vuoto.
+            bmp.ImageFailed += (s, e) => _immagini.Remove(bmp);
+            _immagini.Add(bmp);
+        }
+
+        private void ImpostaPrincipale(BitmapImage bmp)
+        {
             bmp.ImageFailed += (s, e) =>
             {
-                _falliti++;
-                _ultimoErrore = e.ErrorMessage;
-                _immagini.Remove(bmp);
+                // La principale non si carica: al suo posto metto la prima della galleria, se c'è.
+                _haPrincipale = false;
+                ImgPrincipale.Source = null;
+                PromuoviPrimaDellaGalleria();
             };
-            _immagini.Add(bmp);
+            ImgPrincipale.Source = bmp;
+            _haPrincipale = true;
+        }
+
+        private void PromuoviPrimaDellaGalleria()
+        {
+            if (_haPrincipale || _immagini.Count == 0) { AggiornaImmagini(); return; }
+
+            var prima = _immagini[0];
+            _immagini.RemoveAt(0);
+            ImpostaPrincipale(prima);
+            AggiornaImmagini();
         }
 
         private void AggiornaImmagini()
         {
-            NessunaImmagine.Visibility = _immagini.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-            AggiornaContatore();
-        }
-
-        private void Carosello_SelectionChanged(object sender, SelectionChangedEventArgs e) => AggiornaContatore();
-
-        private void AggiornaContatore()
-        {
-            if (ContatoreImmagini == null) return;
-            ContatoreImmagini.Text = _immagini.Count > 1
-                ? $"Immagine {Math.Max(1, Carosello.SelectedIndex + 1)} di {_immagini.Count}"
-                : _immagini.Count == 0 && _diag != ""
-                    ? $"[diagnosi] {_diag} | caricamenti falliti={_falliti} {_ultimoErrore}"
-                    : "";
+            NessunaImmagine.Visibility = _haPrincipale ? Visibility.Collapsed : Visibility.Visible;
+            SezioneGalleria.Visibility = _immagini.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+            TitoloGalleria.Text = $"ALTRE FOTO  ({_immagini.Count})";
         }
 
         // ===================== SALVA IN LOCALE =====================

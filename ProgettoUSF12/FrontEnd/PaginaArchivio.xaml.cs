@@ -57,6 +57,7 @@ namespace ProgettoUSF12
         {
             InitializeComponent();
             ListaFiltri.ItemsSource = Filtri;
+            Griglia.Loaded += (s, e) => AdattaLarghezzaSchede();
         }
 
         protected override async void OnNavigatedTo(NavigationEventArgs e)
@@ -82,6 +83,7 @@ namespace ProgettoUSF12
                 var voci = RicercaGlobale.Elenco(_filtro).Select(r => Crea(r)).ToList();
 
                 Griglia.ItemsSource = voci;
+                AdattaLarghezzaSchede();
                 Conteggio.Text = $"{Filtri[(int)_filtro]}  •  {voci.Count} elementi";
                 Vuoto.Visibility = voci.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
             }
@@ -150,6 +152,21 @@ namespace ProgettoUSF12
             {
                 System.Diagnostics.Debug.WriteLine($"Errore immagine Archivio ({v.Nome}): {ex.Message}");
             }
+        }
+
+        // Divide la larghezza disponibile in colonne intere (cella minima 176 px) e allarga ogni cella
+        // in modo che le schede riempiano la riga fino al bordo destro.
+        private void Griglia_SizeChanged(object sender, SizeChangedEventArgs e) => AdattaLarghezzaSchede();
+
+        private void AdattaLarghezzaSchede()
+        {
+            if (Griglia.ItemsPanelRoot is not ItemsWrapGrid pannello) return;
+
+            double disponibile = Griglia.ActualWidth - 20;   // margine per la barra di scorrimento
+            if (disponibile <= 0) return;
+
+            int colonne = Math.Max(1, (int)(disponibile / 176));
+            pannello.ItemWidth = Math.Floor(disponibile / colonne);
         }
 
         private async void ListaFiltri_ItemClick(object sender, ItemClickEventArgs e)

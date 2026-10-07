@@ -59,44 +59,34 @@
                 CornerRadius="24"
                 Padding="20">
             <Grid>
-                <!-- Scheda singola: carosello a sinistra, dati a destra -->
+                <!-- Scheda singola: foto principale a sinistra, dati a destra, altre foto sotto -->
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <Grid HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8">
+                    <Grid HorizontalAlignment="Stretch" VerticalAlignment="Top" Margin="8">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
-                        <StackPanel Grid.Column="0" Margin="0,0,28,0" VerticalAlignment="Top">
+                        <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,28,0" VerticalAlignment="Top">
                             <Border Width="320" Height="440"
-                                    Background="#141414" CornerRadius="16"
+                                    Background="#141414" CornerRadius="16" Padding="4"
                                     BorderBrush="{StaticResource OroSWTenue}" BorderThickness="1">
                                 <Grid>
                                     <!-- Visibile solo se non c'è nessuna immagine -->
                                     <TextBlock x:Name="NessunaImmagine"
                                                Text="Nessuna immagine" Foreground="#606060" FontSize="14"
                                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
-
-                                    <!-- Carosello: la prima slide è l'immagine principale, poi la galleria -->
-                                    <FlipView x:Name="Carosello"
-                                              Background="Transparent"
-                                              SelectionChanged="Carosello_SelectionChanged">
-                                        <FlipView.ItemTemplate>
-                                            <DataTemplate x:DataType="imaging:BitmapImage">
-                                                <Image Source="{x:Bind}" Stretch="UniformToFill"/>
-                                            </DataTemplate>
-                                        </FlipView.ItemTemplate>
-                                    </FlipView>
+                                    <!-- Foto principale, intera -->
+                                    <Image x:Name="ImgPrincipale" Stretch="Uniform"/>
                                 </Grid>
                             </Border>
-
-                            <TextBlock x:Name="ContatoreImmagini"
-                                       Foreground="#B0B0B0" FontSize="12"
-                                       TextWrapping="Wrap" MaxWidth="320"
-                                       HorizontalAlignment="Center" Margin="0,8,0,0"/>
                         </StackPanel>
 
-                        <StackPanel Grid.Column="1" MinWidth="320" MaxWidth="900" VerticalAlignment="Top">
+                        <StackPanel Grid.Row="0" Grid.Column="1" MinWidth="320" MaxWidth="900" VerticalAlignment="Top">
                             <TextBlock x:Name="NomeScheda"
                                        Foreground="{StaticResource OroSW}"
                                        FontSize="40" FontWeight="Bold" TextWrapping="Wrap"/>
@@ -159,6 +149,41 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
+                        </StackPanel>
+
+                        <!-- Altre foto: ognuna intera (anche quelle orizzontali), sotto a tutte le info -->
+                        <StackPanel x:Name="SezioneGalleria"
+                                    Grid.Row="1" Grid.ColumnSpan="2"
+                                    Margin="0,20,0,72" Visibility="Collapsed">
+                            <Border BorderBrush="{StaticResource OroSWTenue}" BorderThickness="2,0,0,0"
+                                    Padding="14,2,0,2" Margin="0,0,0,10">
+                                <TextBlock x:Name="TitoloGalleria"
+                                           Foreground="{StaticResource OroSW}"
+                                           FontSize="12" FontWeight="SemiBold" CharacterSpacing="40"/>
+                            </Border>
+                            <GridView x:Name="GalleriaFoto"
+                                      SelectionMode="None" IsItemClickEnabled="False"
+                                      ScrollViewer.VerticalScrollMode="Disabled"
+                                      ScrollViewer.VerticalScrollBarVisibility="Hidden"
+                                      Margin="-4,0,0,0">
+                                <GridView.ItemContainerStyle>
+                                    <Style TargetType="GridViewItem">
+                                        <Setter Property="Margin" Value="0,0,14,14"/>
+                                        <Setter Property="Padding" Value="0"/>
+                                        <Setter Property="IsHitTestVisible" Value="False"/>
+                                        <Setter Property="IsTabStop" Value="False"/>
+                                    </Style>
+                                </GridView.ItemContainerStyle>
+                                <GridView.ItemTemplate>
+                                    <DataTemplate x:DataType="imaging:BitmapImage">
+                                        <Border Width="380" Height="250"
+                                                Background="#101010" CornerRadius="14" Padding="6"
+                                                BorderBrush="#33FFE81F" BorderThickness="1">
+                                            <Image Source="{x:Bind}" Stretch="Uniform"/>
+                                        </Border>
+                                    </DataTemplate>
+                                </GridView.ItemTemplate>
+                            </GridView>
                         </StackPanel>
                     </Grid>
                 </ScrollViewer>

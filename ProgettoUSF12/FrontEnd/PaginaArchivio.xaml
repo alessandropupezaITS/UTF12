@@ -28,13 +28,16 @@
 
         <frontend:BarraSuperiore Grid.Row="0"/>
 
-        <TextBlock Grid.Row="1"
-                   Text="ARCHIVIO"
-                   FontSize="44"
-                   FontWeight="Black"
-                   CharacterSpacing="40"
-                   Foreground="{StaticResource OroSW}"
-                   Margin="32,24,0,16"/>
+        <StackPanel Grid.Row="1" Margin="32,24,0,16">
+            <TextBlock Text="ARCHIVIO"
+                       FontSize="44"
+                       FontWeight="Black"
+                       CharacterSpacing="40"
+                       Foreground="{StaticResource OroSW}"/>
+            <Rectangle Width="72" Height="3" RadiusX="2" RadiusY="2"
+                       Fill="{StaticResource OroSW}"
+                       HorizontalAlignment="Left" Margin="0,6,0,0"/>
+        </StackPanel>
 
         <Border Grid.Row="2"
                 Margin="32,0,32,24"
@@ -101,14 +104,27 @@
                           IsItemClickEnabled="True"
                           ItemClick="Griglia_ItemClick"
                           ContainerContentChanging="Griglia_ContainerContentChanging"
+                          SizeChanged="Griglia_SizeChanged"
                           Background="Transparent">
+                    <!-- Le schede si allargano per riempire la riga (niente vuoto a destra):
+                         la larghezza della cella la imposta Griglia_SizeChanged. -->
+                    <GridView.ItemContainerStyle>
+                        <Style TargetType="GridViewItem">
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                            <Setter Property="Padding" Value="0"/>
+                        </Style>
+                    </GridView.ItemContainerStyle>
                     <GridView.ItemTemplate>
                         <DataTemplate x:DataType="local:VoceArchivio">
-                            <StackPanel Width="150" Margin="0,0,16,16">
-                                <Border Height="200"
-                                        CornerRadius="12"
-                                        Background="#141414">
-                                    <Image Source="{x:Bind Miniatura, Mode=OneWay}" Stretch="UniformToFill"/>
+                            <StackPanel Margin="0,0,16,16">
+                                <!-- Immagine intera (Uniform) su sfondo scuro: niente ritagli strani e meno ingrandimenti
+                                     delle foto piccole, quindi più nitide. -->
+                                <Border Height="210"
+                                        CornerRadius="14"
+                                        Padding="6"
+                                        Background="#101010"
+                                        BorderBrush="#33FFE81F" BorderThickness="1">
+                                    <Image Source="{x:Bind Miniatura, Mode=OneWay}" Stretch="Uniform"/>
                                 </Border>
                                 <TextBlock Text="{x:Bind Nome}"
                                            Foreground="White"

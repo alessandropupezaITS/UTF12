@@ -190,9 +190,15 @@
                                                        Foreground="{StaticResource OroSW}"
                                                        FontSize="11" FontWeight="SemiBold" CharacterSpacing="40"
                                                        Margin="0,0,0,4"/>
-                                            <TextBlock Text="{x:Bind Introduzione}"
-                                                       Foreground="White" FontSize="14" LineHeight="22"
-                                                       TextWrapping="Wrap"/>
+                                            <ItemsControl ItemsSource="{x:Bind Paragrafi}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate x:DataType="x:String">
+                                                        <TextBlock Text="{x:Bind}"
+                                                                   Foreground="White" FontSize="14" LineHeight="22"
+                                                                   TextWrapping="Wrap" Margin="0,0,0,8"/>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
                                         </StackPanel>
                                     </Border>
 

@@ -35,18 +35,19 @@ namespace ProgettoUSF12
         public List<VoceNome> Razze { get; set; } = new();
         public List<VoceNome> Astronavi { get; set; } = new();
 
-        // SWAPI manda l'introduzione con un "a capo" ogni ~30 caratteri: nel XAML il testo restava
-        // in una colonna stretta. Qui unisco le righe di uno stesso paragrafo e tengo
-        // solo gli a capo veri (riga vuota tra un paragrafo e l'altro).
-        public string Introduzione
+        // SWAPI manda l'introduzione con un "a capo" ogni ~30 caratteri. Qui unisco le righe di uno
+        // stesso paragrafo e restituisco la lista dei paragrafi: nel XAML ognuno è un TextBlock
+        // con un piccolo margine (prima la riga vuota in mezzo creava spazi troppo grandi).
+        public List<string> Paragrafi
         {
             get
             {
                 var t = (Film?.OpeningCrawl ?? "").Replace("\r\n", "\n");
-                var paragrafi = t.Split(new[] { "\n\n" }, StringSplitOptions.RemoveEmptyEntries)
-                                 .Select(p => string.Join(" ", p.Split('\n', StringSplitOptions.RemoveEmptyEntries)
-                                                                .Select(r => r.Trim())));
-                return string.Join("\n\n", paragrafi);
+                return t.Split(new[] { "\n\n" }, StringSplitOptions.RemoveEmptyEntries)
+                        .Select(p => string.Join(" ", p.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                                                       .Select(r => r.Trim())))
+                        .Where(p => p.Length > 0)
+                        .ToList();
             }
         }
 
@@ -329,8 +330,8 @@ namespace ProgettoUSF12
         public static BitmapImage? ConvertiPoster(string? posterUrl) => CreaImmagine(posterUrl, null);
 
         // Come ConvertiPoster ma decodifica l'immagine piccola (usata dall'Archivio):
-        // con decine di schede si risparmia molta memoria.
-        public static BitmapImage? ConvertiMiniatura(string? url) => CreaImmagine(url, 200);
+        // con decine di schede si risparmia molta memoria (420px: abbastanza nitida anche sugli schermi ad alta densità).
+        public static BitmapImage? ConvertiMiniatura(string? url) => CreaImmagine(url, 420);
 
         private static BitmapImage? CreaImmagine(string? url, int? larghezzaDecodifica)
         {
