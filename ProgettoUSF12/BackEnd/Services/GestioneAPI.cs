@@ -39,7 +39,16 @@ namespace ProgettoUSF12.BackEnd.Services
         private const string OmdbApiKey = "e6ceb7e7";  //e6ceb7e7 // <-- inserisci qui la chiave ricevuta via email
         private const string FandomBaseUrl = "https://starwars.fandom.com/api.php";
 
-        private static readonly HttpClient _http = new HttpClient();
+        private static readonly HttpClient _http = CreaHttpClient();
+
+        // Molte API (Fandom/MediaWiki in particolare) rifiutano le richieste senza User-Agent:
+        // l'errore finiva nel try/catch e l'immagine restava semplicemente vuota.
+        private static HttpClient CreaHttpClient()
+        {
+            var client = new HttpClient();
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("ProgettoUSF12/1.0 (app UWP didattica)");
+            return client;
+        }
 
         private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
         {
@@ -47,21 +56,20 @@ namespace ProgettoUSF12.BackEnd.Services
         };
 
         // ===================== FILM =====================
-        // Ordine di ricerca per ogni tipo: memoria -> DB locale -> API SWAPI.
-        // Dopo un download completo dall'API, se c'è una sessione attiva (login),
-        // i dati vengono salvati nel DB.
+        // Ordine di ricerca per ogni tipo: memoria -> API SWAPI -> (se offline o SWAPI non risponde)
+        // gli elementi che l'utente ha salvato in locale. Nel DB scrive solo il bottone
+        // "Salva in locale" (vedi ArchivioLocale).
 
         public static List<Film> GetFilms()
         {
             return CaricaEntita<Film>(
                 "films",
-                ArchivioLocale.CaricaFilm,
                 film => Parallel.ForEach(film, f =>
                 {
                     f.Id = SwapiIdConverter.ExtractId(f.Url);
                     f.PosterUrl = GetPosterOmdb(f.EpisodeId);
                 }),
-                ArchivioLocale.SalvaFilm);
+                ArchivioLocale.CaricaFilm);
         }
 
         // ===================== PERSONAGGI =====================
@@ -70,9 +78,8 @@ namespace ProgettoUSF12.BackEnd.Services
         {
             var lista = CaricaEntita<Personaggio>(
                 "people",
-                ArchivioLocale.CaricaPersonaggi,
                 l => l.ForEach(p => p.Id = SwapiIdConverter.ExtractId(p.Url)),
-                ArchivioLocale.SalvaPersonaggi);
+                ArchivioLocale.CaricaPersonaggi);
 
             if (conImmagini) ImmaginiPersonaggi(lista);
             return lista;
@@ -98,8 +105,7 @@ namespace ProgettoUSF12.BackEnd.Services
             CompletaImmagini(lista, "characters",
                 x => x.Name, x => x.Id,
                 x => x.MainImage != null || x.ImageGallery.Count > 0,
-                (x, main, gallery) => { x.MainImage = main; x.ImageGallery = gallery; },
-                ArchivioLocale.SalvaPersonaggi);
+                (x, main, gallery) => { x.MainImage = main; x.ImageGallery = gallery; });
 
         // ===================== PIANETI =====================
 
@@ -107,9 +113,8 @@ namespace ProgettoUSF12.BackEnd.Services
         {
             var lista = CaricaEntita<Pianeta>(
                 "planets",
-                ArchivioLocale.CaricaPianeti,
                 l => l.ForEach(p => p.Id = SwapiIdConverter.ExtractId(p.Url)),
-                ArchivioLocale.SalvaPianeti);
+                ArchivioLocale.CaricaPianeti);
 
             if (conImmagini) ImmaginiPianeti(lista);
             return lista;
@@ -134,8 +139,7 @@ namespace ProgettoUSF12.BackEnd.Services
             CompletaImmagini(lista, "planets",
                 x => x.Name, x => x.Id,
                 x => x.MainImage != null || x.ImageGallery.Count > 0,
-                (x, main, gallery) => { x.MainImage = main; x.ImageGallery = gallery; },
-                ArchivioLocale.SalvaPianeti);
+                (x, main, gallery) => { x.MainImage = main; x.ImageGallery = gallery; });
 
         // ===================== RAZZE =====================
 
@@ -143,9 +147,8 @@ namespace ProgettoUSF12.BackEnd.Services
         {
             var lista = CaricaEntita<Razza>(
                 "species",
-                ArchivioLocale.CaricaRazze,
                 l => l.ForEach(r => r.Id = SwapiIdConverter.ExtractId(r.Url)),
-                ArchivioLocale.SalvaRazze);
+                ArchivioLocale.CaricaRazze);
 
             if (conImmagini) ImmaginiRazze(lista);
             return lista;
@@ -170,8 +173,7 @@ namespace ProgettoUSF12.BackEnd.Services
             CompletaImmagini(lista, "species",
                 x => x.Name, x => x.Id,
                 x => x.MainImage != null || x.ImageGallery.Count > 0,
-                (x, main, gallery) => { x.MainImage = main; x.ImageGallery = gallery; },
-                ArchivioLocale.SalvaRazze);
+                (x, main, gallery) => { x.MainImage = main; x.ImageGallery = gallery; });
 
         // ===================== ASTRONAVI =====================
 
@@ -179,9 +181,8 @@ namespace ProgettoUSF12.BackEnd.Services
         {
             var lista = CaricaEntita<Astronave>(
                 "starships",
-                ArchivioLocale.CaricaAstronavi,
                 l => l.ForEach(a => a.Id = SwapiIdConverter.ExtractId(a.Url)),
-                ArchivioLocale.SalvaAstronavi);
+                ArchivioLocale.CaricaAstronavi);
 
             if (conImmagini) ImmaginiAstronavi(lista);
             return lista;
@@ -206,133 +207,103 @@ namespace ProgettoUSF12.BackEnd.Services
             CompletaImmagini(lista, "starships",
                 x => x.Name, x => x.Id,
                 x => x.MainImage != null || x.ImageGallery.Count > 0,
-                (x, main, gallery) => { x.MainImage = main; x.ImageGallery = gallery; },
-                ArchivioLocale.SalvaAstronavi);
+                (x, main, gallery) => { x.MainImage = main; x.ImageGallery = gallery; });
 
         // ===================== HELPER =====================
 
-        // ===================== DB LOCALE + SESSIONE =====================
+        // ===================== CACHE IN MEMORIA =====================
 
-        // Sessione attiva = l'utente ha fatto il login (vedi Login.xaml.cs).
-        private static bool SessioneAttiva => !string.IsNullOrWhiteSpace(App.UsernameLoggato);
+        private static readonly ConcurrentDictionary<string, object> _cacheEntita = new();
 
-        private class VoceCache
+        private static long _ultimoFallimento;   // UTC ticks dell'ultimo download SWAPI fallito
+
+        // true se non c'è internet, oppure se SWAPI ha appena fallito (ogni tentativo a vuoto
+        // costa secondi: per 30 secondi non si riprova e si usano i dati salvati).
+        public static bool IsOffline
         {
-            public object Lista = null!;
-            public bool Salvata;   // true se i dati sono già nel DB
-            public Action Salva = () => { };   // scrive questa lista nel DB
+            get
+            {
+                try
+                {
+                    var profilo = Windows.Networking.Connectivity.NetworkInformation.GetInternetConnectionProfile();
+                    if (profilo == null ||
+                        profilo.GetNetworkConnectivityLevel() != Windows.Networking.Connectivity.NetworkConnectivityLevel.InternetAccess)
+                        return true;
+                }
+                catch { /* se non si riesce a saperlo, si prova comunque */ }
+
+                var trascorsi = DateTime.UtcNow.Ticks - System.Threading.Interlocked.Read(ref _ultimoFallimento);
+                return trascorsi < TimeSpan.FromSeconds(30).Ticks;
+            }
         }
 
-        private static readonly ConcurrentDictionary<string, VoceCache> _cacheEntita = new();
-
-        // Memoria -> DB -> API. Il salvataggio nel DB avviene solo dopo un download COMPLETO
-        // e solo con la sessione attiva: così nel DB non finiscono mai dati a metà.
-        // Se l'utente fa il login più tardi, il salvataggio avviene alla prima richiesta successiva.
+        // Memoria -> API -> salvataggi dell'utente. I dati salvati usati come ripiego NON vanno
+        // in cache: appena torna la rete si scarica di nuovo la lista completa.
         private static List<T> CaricaEntita<T>(
             string endpoint,
-            Func<List<T>> daDb,
-            Action<List<T>> completaDaApi,   // imposta Id (e poster per i film) sui dati appena scaricati
-            Action<List<T>> salvaDb)
+            Action<List<T>> completaDaApi,       // imposta Id (e poster per i film) sui dati appena scaricati
+            Func<string, List<T>> daLocale)      // elementi salvati dall'utente (parametro = chiave utente)
         {
             lock (_lockSwapi.GetOrAdd(endpoint, _ => new object()))
             {
-                // 1) Memoria
-                if (_cacheEntita.TryGetValue(endpoint, out var voce))
-                {
-                    SalvaPendenti();   // se nel frattempo hai fatto il login, salva ora
-                    return (List<T>)voce.Lista;
-                }
+                if (_cacheEntita.TryGetValue(endpoint, out var inMemoria))
+                    return (List<T>)inMemoria;
 
-                // 2) DB locale
-                try
+                if (!IsOffline)
                 {
-                    var salvati = daDb();
-                    if (salvati != null && salvati.Count > 0)
+                    var lista = ScaricaTutto<T>(endpoint);
+                    if (lista.Count > 0)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[DB] '{endpoint}': {salvati.Count} elementi letti dal DB");
-                        _cacheEntita[endpoint] = new VoceCache { Lista = salvati, Salvata = true };
-                        return salvati;
+                        completaDaApi(lista);
+
+                        // ScaricaTutto mette in cache solo i download completi
+                        if (_cacheSwapi.ContainsKey(endpoint))
+                            _cacheEntita[endpoint] = lista;
+                        else
+                            System.Diagnostics.Debug.WriteLine($"'{endpoint}': download INCOMPLETO, non messo in cache");
+
+                        return lista;
                     }
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"DB non disponibile per '{endpoint}': {ex.Message}");
+
+                    System.Threading.Interlocked.Exchange(ref _ultimoFallimento, DateTime.UtcNow.Ticks);
                 }
 
-                // 3) API
-                var lista = ScaricaTutto<T>(endpoint);
-                if (lista.Count == 0) return lista;
-
-                completaDaApi(lista);
-
-                // ScaricaTutto mette in cache solo i download completi
-                if (_cacheSwapi.ContainsKey(endpoint))
-                {
-                    _cacheEntita[endpoint] = new VoceCache { Lista = lista, Salva = () => salvaDb(lista) };
-                    SalvaPendenti();
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine($"[DB] '{endpoint}': download INCOMPLETO, non salvato");
-                }
-
-                return lista;
+                return Salvati(endpoint, daLocale);
             }
         }
 
-        private static readonly object _lockSalvataggio = new();
-
-        // Salva nel DB tutte le liste già scaricate ma non ancora salvate (es. scaricate PRIMA del login).
-        // Viene chiamata a ogni accesso a un'entità: appena la sessione è attiva, il DB si allinea.
-        private static void SalvaPendenti()
+        private static List<T> Salvati<T>(string endpoint, Func<string, List<T>> daLocale)
         {
-            if (!SessioneAttiva) return;
+            var utente = GestioneUtente.ChiaveCorrente;
+            if (utente == null) return new List<T>();
 
-            lock (_lockSalvataggio)
+            try
             {
-                foreach (var kv in _cacheEntita)
-                {
-                    var voce = kv.Value;
-                    if (voce.Salvata) continue;
-                    try
-                    {
-                        voce.Salva();
-                        voce.Salvata = true;
-                        System.Diagnostics.Debug.WriteLine($"[DB] '{kv.Key}' salvato");
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[DB] salvataggio di '{kv.Key}' FALLITO: {ex.Message}");
-                    }
-                }
+                var salvati = daLocale(utente);
+                System.Diagnostics.Debug.WriteLine($"[OFFLINE] '{endpoint}': {salvati.Count} elementi salvati dall'utente");
+                return salvati;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"DB locale non disponibile per '{endpoint}': {ex.Message}");
+                return new List<T>();
             }
         }
 
-        // Scarica le immagini (Visual Guide / Fandom) solo per gli elementi che non le hanno
-        // ancora (né da DB né da una chiamata precedente), poi aggiorna il DB se loggato.
+        // Scarica le immagini (Visual Guide / Fandom) solo per gli elementi che non le hanno ancora.
         private static void CompletaImmagini<T>(
             List<T> lista, string tipo,
             Func<T, string> nome, Func<T, int> id, Func<T, bool> haImmagini,
-            Action<T, string?, List<string>> imposta,
-            Action<List<T>> salvaDb)
+            Action<T, string?, List<string>> imposta)
         {
             var daCompletare = lista.Where(x => !haImmagini(x)).ToList();
-            if (daCompletare.Count == 0) return;
+            if (daCompletare.Count == 0 || IsOffline) return;
 
             Parallel.ForEach(daCompletare, new ParallelOptions { MaxDegreeOfParallelism = 6 }, x =>
             {
                 var (main, gallery) = GetImmagini(nome(x), tipo, id(x));
                 imposta(x, main, gallery);
             });
-
-            var aggiornati = daCompletare.Where(haImmagini).ToList();
-            if (aggiornati.Count == 0 || !SessioneAttiva) return;
-
-            try { salvaDb(aggiornati); }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Salvataggio immagini nel DB fallito: {ex.Message}");
-            }
         }
 
 
@@ -466,8 +437,68 @@ namespace ProgettoUSF12.BackEnd.Services
             };
             if (tipo == null) return null;
 
+            // Se l'utente ha già salvato questo elemento la foto è nota: niente rete.
+            var utente = GestioneUtente.ChiaveCorrente;
+            if (utente != null)
+            {
+                try
+                {
+                    var salvata = ArchivioLocale.ImmaginePrincipale(utente, categoria, id);
+                    if (!string.IsNullOrEmpty(salvata)) return salvata;
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Foto salvata non leggibile: {ex.Message}");
+                }
+            }
+            if (IsOffline) return null;
+
             var urlGuide = $"{VisualGuideBaseUrl}{tipo}/{id}.jpg";
             return UrlEsiste(urlGuide) ? urlGuide : GetImmaginiFandom(nome).main;
+        }
+
+        // Galleria per il carosello di PaginaDettaglio.
+        // ImageGallery contiene TITOLI di file Fandom ("File:Naboo.jpg"), non URL: qui ne
+        // risolvo al massimo `max` in URL veri. Come per l'immagine principale tengo solo i file
+        // che contengono il nome dell'elemento (meglio nessuna foto che una foto sbagliata).
+        public static List<string> GetUrlGalleria(string nome, List<string> titoliFile, int max = 8)
+        {
+            if (IsOffline) return new List<string>();
+
+            var scelti = titoliFile
+                .Where(t => ContieneNome(t, nome))
+                .Take(max)
+                .ToList();
+
+            var urls = new string?[scelti.Count];
+            Parallel.For(0, scelti.Count, new ParallelOptions { MaxDegreeOfParallelism = 4 },
+                i => urls[i] = RisolviUrlFile(scelti[i]));
+
+            return urls.Where(u => !string.IsNullOrEmpty(u)).Select(u => u!).ToList();
+        }
+
+        // Scarica i byte di un'immagine con lo stesso HttpClient delle API (User-Agent incluso) e il
+        // Referer di Fandom. Serve perché il caricatore di immagini di XAML (BitmapImage + Uri)
+        // sui file di static.wikia.nocookie.net falliva con E_NETWORK_ERROR anche se l'URL era valido.
+        public static byte[]? ScaricaBytes(string url)
+        {
+            try
+            {
+                using var req = new HttpRequestMessage(HttpMethod.Get, url);
+                req.Headers.Referrer = new Uri("https://starwars.fandom.com/");
+                using var resp = _http.SendAsync(req).GetAwaiter().GetResult();
+                if (!resp.IsSuccessStatusCode)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[IMG] ScaricaBytes HTTP {(int)resp.StatusCode} {url}");
+                    return null;
+                }
+                return resp.Content.ReadAsByteArrayAsync().GetAwaiter().GetResult();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[IMG] ScaricaBytes('{url}'): {ex.Message}");
+                return null;
+            }
         }
 
         private static bool UrlEsiste(string url)
@@ -485,6 +516,21 @@ namespace ProgettoUSF12.BackEnd.Services
                 System.Diagnostics.Debug.WriteLine($"UrlEsiste('{url}'): {ex.Message}");
                 return false;
             }
+        }
+
+        // Confronto tra titolo di un file Fandom e il nome dell'elemento ignorando spazi, "_", "-",
+        // maiuscole e il prefisso "File:". Prima "File:BarrissOffee.jpg" o "File:Barriss_Offee_ROTS.png"
+        // NON contenevano "Barriss Offee" (con lo spazio): tutti i file venivano scartati e
+        // la scheda restava senza immagini anche se la galleria ne aveva decine.
+        private static string Normalizza(string s) =>
+            new string(s.Where(char.IsLetterOrDigit).ToArray()).ToLowerInvariant();
+
+        private static bool ContieneNome(string titoloFile, string nome)
+        {
+            var n = Normalizza(nome);
+            if (n.Length == 0) return false;
+            var t = titoloFile.StartsWith("File:", StringComparison.OrdinalIgnoreCase) ? titoloFile.Substring(5) : titoloFile;
+            return Normalizza(t).Contains(n);
         }
 
         // Parole che indicano immagini "di contorno" del sito (loghi, favicon, Disney+...)
@@ -517,15 +563,19 @@ namespace ProgettoUSF12.BackEnd.Services
                                 && !_paroleEscluse.Any(w => t.Contains(w, StringComparison.OrdinalIgnoreCase)))
                     .Select(t => t!)
                     // i file che contengono il nome cercato vanno per primi
-                    .OrderByDescending(t => t.Contains(name, StringComparison.OrdinalIgnoreCase))
+                    .OrderByDescending(t => ContieneNome(t, name))
                     .ToList();
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[IMG] Fandom '{name}': pagina={(pagina == null ? "NON TROVATA" : "ok")} | thumbnail={(main ?? "null")} | file in galleria={gallery.Count}");
 
                 // Ripiego: la pagina non ha immagine principale ma c'è un file col suo nome
                 // in galleria -> ne ricavo l'URL. (Se nessun file contiene il nome preferisco
                 // NON mostrare nulla piuttosto che una foto sbagliata.)
                 if (main == null)
                 {
-                    var candidato = gallery.FirstOrDefault(t => t.Contains(name, StringComparison.OrdinalIgnoreCase));
+                    var candidato = gallery.FirstOrDefault(t => ContieneNome(t, name));
+                    System.Diagnostics.Debug.WriteLine($"[IMG] '{name}': nessun thumbnail, candidato dalla galleria = {candidato ?? "NESSUNO"}");
                     if (candidato != null)
                         main = RisolviUrlFile(candidato);
                 }

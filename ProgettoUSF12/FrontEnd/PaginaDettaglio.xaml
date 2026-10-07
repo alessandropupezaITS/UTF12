@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:ProgettoUSF12"
     xmlns:frontend="using:ProgettoUSF12.FrontEnd"
+    xmlns:imaging="using:Windows.UI.Xaml.Media.Imaging"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
@@ -58,35 +59,126 @@
                 CornerRadius="24"
                 Padding="20">
             <Grid>
-                <!-- Scheda singola: immagine grande a sinistra, dati a destra -->
+                <!-- Scheda singola: carosello a sinistra, dati a destra -->
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <Grid HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
 
-                            <Border Grid.Column="0" Width="320" Height="440"
-                                    Background="#141414" CornerRadius="12"
-                                    VerticalAlignment="Top" Margin="0,0,28,0">
+                        <StackPanel Grid.Column="0" Margin="0,0,28,0" VerticalAlignment="Top">
+                            <Border Width="320" Height="440"
+                                    Background="#141414" CornerRadius="16"
+                                    BorderBrush="{StaticResource OroSWTenue}" BorderThickness="1">
                                 <Grid>
-                                    <TextBlock Text="Nessuna immagine" Foreground="#606060" FontSize="14"
+                                    <!-- Visibile solo se non c'è nessuna immagine -->
+                                    <TextBlock x:Name="NessunaImmagine"
+                                               Text="Nessuna immagine" Foreground="#606060" FontSize="14"
                                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                    <Image x:Name="ImmagineScheda" Stretch="UniformToFill"/>
+
+                                    <!-- Carosello: la prima slide è l'immagine principale, poi la galleria -->
+                                    <FlipView x:Name="Carosello"
+                                              Background="Transparent"
+                                              SelectionChanged="Carosello_SelectionChanged">
+                                        <FlipView.ItemTemplate>
+                                            <DataTemplate x:DataType="imaging:BitmapImage">
+                                                <Image Source="{x:Bind}" Stretch="UniformToFill"/>
+                                            </DataTemplate>
+                                        </FlipView.ItemTemplate>
+                                    </FlipView>
                                 </Grid>
                             </Border>
 
-                            <StackPanel Grid.Column="1" MinWidth="280" VerticalAlignment="Top">
-                                <TextBlock x:Name="NomeScheda"
-                                           Foreground="{StaticResource OroSW}"
-                                           FontSize="32" FontWeight="Bold" TextWrapping="Wrap"/>
-                                <TextBlock x:Name="Riga1" Foreground="White" FontSize="18" TextWrapping="Wrap" Margin="0,16,0,0"/>
-                                <TextBlock x:Name="Riga2" Foreground="White" FontSize="18" TextWrapping="Wrap" Margin="0,6,0,0"/>
-                                <TextBlock x:Name="Riga3" Foreground="White" FontSize="18" TextWrapping="Wrap" Margin="0,6,0,0"/>
-                                <TextBlock x:Name="Galleria" Foreground="#B0B0B0" FontSize="14" Margin="0,20,0,0"/>
-                            </StackPanel>
+                            <TextBlock x:Name="ContatoreImmagini"
+                                       Foreground="#B0B0B0" FontSize="12"
+                                       TextWrapping="Wrap" MaxWidth="320"
+                                       HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" MinWidth="320" MaxWidth="900" VerticalAlignment="Top">
+                            <TextBlock x:Name="NomeScheda"
+                                       Foreground="{StaticResource OroSW}"
+                                       FontSize="40" FontWeight="Bold" TextWrapping="Wrap"/>
+                            <Rectangle Width="72" Height="3" RadiusX="2" RadiusY="2"
+                                       Fill="{StaticResource OroSW}"
+                                       HorizontalAlignment="Left" Margin="0,8,0,20"/>
+
+                            <!-- Info come "tessere": etichetta piccola + valore -->
+                            <GridView x:Name="ListaInfo"
+                                      SelectionMode="None" IsItemClickEnabled="False"
+                                      ScrollViewer.VerticalScrollMode="Disabled"
+                                      ScrollViewer.VerticalScrollBarVisibility="Hidden"
+                                      Margin="-4,0,0,8">
+                                <GridView.ItemContainerStyle>
+                                    <Style TargetType="GridViewItem">
+                                        <Setter Property="Margin" Value="0,0,12,12"/>
+                                        <Setter Property="Padding" Value="0"/>
+                                        <Setter Property="IsHitTestVisible" Value="False"/>
+                                        <Setter Property="IsTabStop" Value="False"/>
+                                    </Style>
+                                </GridView.ItemContainerStyle>
+                                <GridView.ItemTemplate>
+                                    <DataTemplate x:DataType="local:RigaInfo">
+                                        <Border Width="200" MinHeight="64"
+                                                Background="#22FFFFFF"
+                                                BorderBrush="#33FFE81F" BorderThickness="1"
+                                                CornerRadius="12" Padding="14,10">
+                                            <StackPanel>
+                                                <TextBlock Text="{x:Bind Etichetta}"
+                                                           Foreground="#B0B0B0"
+                                                           FontSize="11" FontWeight="SemiBold" CharacterSpacing="40"
+                                                           TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Text="{x:Bind Valore}"
+                                                           Foreground="White"
+                                                           FontSize="18" FontWeight="SemiBold"
+                                                           TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </GridView.ItemTemplate>
+                            </GridView>
+
+                            <!-- Nomi cliccabili (pianeta, razza, astronavi, film...) -->
+                            <ItemsControl x:Name="ListaCollegamenti" Margin="0,8,0,0">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="local:GruppoLink">
+                                        <Border BorderBrush="{StaticResource OroSWTenue}"
+                                                BorderThickness="2,0,0,0"
+                                                Padding="14,2,0,2" Margin="0,0,0,18">
+                                            <StackPanel>
+                                                <TextBlock Text="{x:Bind Intestazione}"
+                                                           Foreground="{StaticResource OroSW}"
+                                                           FontSize="12" FontWeight="SemiBold" CharacterSpacing="40"
+                                                           Margin="0,0,0,6"/>
+                                                <RichTextBlock local:NomiCliccabili.Voci="{x:Bind Voci}"
+                                                               Foreground="White" FontSize="17" LineHeight="28"
+                                                               IsTextSelectionEnabled="False"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
                     </Grid>
                 </ScrollViewer>
+
+                <!-- Salva / rimuovi dai salvati dell'utente loggato: in basso a destra del pannello -->
+                <StackPanel Orientation="Horizontal"
+                            HorizontalAlignment="Right" VerticalAlignment="Bottom">
+                    <TextBlock x:Name="StatoSalvataggio"
+                               Foreground="#B0B0B0" FontSize="13"
+                               TextWrapping="Wrap" MaxWidth="320"
+                               VerticalAlignment="Center" Margin="0,0,16,0"/>
+                    <Button x:Name="BtnSalva"
+                            Content="Salva in locale"
+                            Click="BtnSalva_Click"
+                            Visibility="Collapsed"
+                            Foreground="{StaticResource OroSW}"
+                            Background="{StaticResource VetroTile}"
+                            BorderBrush="{StaticResource OroSWTenue}"
+                            Padding="16,8"/>
+                </StackPanel>
 
                 <ProgressRing x:Name="Caricamento" Width="64" Height="64" IsActive="False"
                               Foreground="{StaticResource OroSW}"

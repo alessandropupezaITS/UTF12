@@ -38,13 +38,16 @@
 
         <frontend:BarraSuperiore Grid.Row="0"/>
 
-        <TextBlock Grid.Row="1"
-                   Text="FILM"
-                   FontSize="44"
-                   FontWeight="Black"
-                   CharacterSpacing="40"
-                   Foreground="{StaticResource OroSW}"
-                   Margin="32,24,0,16"/>
+        <StackPanel Grid.Row="1" Margin="32,24,0,16">
+            <TextBlock Text="FILM"
+                       FontSize="44"
+                       FontWeight="Black"
+                       CharacterSpacing="40"
+                       Foreground="{StaticResource OroSW}"/>
+            <Rectangle Width="72" Height="3" RadiusX="2" RadiusY="2"
+                       Fill="{StaticResource OroSW}"
+                       HorizontalAlignment="Left" Margin="0,6,0,0"/>
+        </StackPanel>
 
         <Border Grid.Row="2"
                 Margin="32,0,32,24"
@@ -112,7 +115,7 @@
                     </ListView.ItemContainerStyle>
                     <ListView.ItemTemplate>
                         <DataTemplate x:DataType="local:SchedaFilm">
-                            <Grid Margin="0,0,0,24">
+                            <Grid Margin="0,0,0,16">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
@@ -123,9 +126,10 @@
                                 </Grid.ColumnDefinitions>
 
                                 <Border Grid.Row="0" Grid.Column="0"
-                                        Width="200" Height="300"
-                                        CornerRadius="12"
+                                        Width="180" Height="270"
+                                        CornerRadius="16"
                                         Background="#141414"
+                                        BorderBrush="{StaticResource OroSWTenue}" BorderThickness="1"
                                         VerticalAlignment="Top"
                                         Margin="0,0,24,0">
                                     <Image Source="{x:Bind local:PaginaFilm.ConvertiPoster(Film.PosterUrl)}"
@@ -135,66 +139,146 @@
                                 <StackPanel Grid.Row="0" Grid.Column="1">
                                     <TextBlock Text="{x:Bind Film.Title}"
                                                Foreground="{StaticResource OroSW}"
-                                               FontSize="28"
-                                               FontWeight="Bold"
+                                               FontSize="32" FontWeight="Bold"
                                                TextWrapping="Wrap"/>
+                                    <Rectangle Width="72" Height="3" RadiusX="2" RadiusY="2"
+                                               Fill="{StaticResource OroSW}"
+                                               HorizontalAlignment="Left" Margin="0,6,0,12"/>
 
-                                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                                        <TextBlock Text="Episodio " Foreground="#B0B0B0"/>
-                                        <TextBlock Text="{x:Bind Film.EpisodeId}" Foreground="#B0B0B0"/>
-                                        <TextBlock Text="  •  Regia: " Foreground="#B0B0B0"/>
-                                        <TextBlock Text="{x:Bind Film.Director}" Foreground="#B0B0B0"/>
-                                        <TextBlock Text="  •  Uscita: " Foreground="#B0B0B0"/>
-                                        <TextBlock Text="{x:Bind Film.ReleaseDate}" Foreground="#B0B0B0"/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Border Width="150" Background="#22FFFFFF"
+                                                BorderBrush="#33FFE81F" BorderThickness="1"
+                                                CornerRadius="10" Padding="12,6" Margin="0,0,10,10">
+                                            <StackPanel>
+                                                <TextBlock Text="EPISODIO" Foreground="#B0B0B0"
+                                                           FontSize="10" FontWeight="SemiBold" CharacterSpacing="40"/>
+                                                <TextBlock Text="{x:Bind Film.EpisodeId}" Foreground="White"
+                                                           FontSize="16" FontWeight="SemiBold"
+                                                           TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <Border MinWidth="150" Background="#22FFFFFF"
+                                                BorderBrush="#33FFE81F" BorderThickness="1"
+                                                CornerRadius="10" Padding="12,6" Margin="0,0,10,10">
+                                            <StackPanel>
+                                                <TextBlock Text="REGIA" Foreground="#B0B0B0"
+                                                           FontSize="10" FontWeight="SemiBold" CharacterSpacing="40"/>
+                                                <TextBlock Text="{x:Bind Film.Director}" Foreground="White"
+                                                           FontSize="16" FontWeight="SemiBold"
+                                                           TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <Border Width="150" Background="#22FFFFFF"
+                                                BorderBrush="#33FFE81F" BorderThickness="1"
+                                                CornerRadius="10" Padding="12,6" Margin="0,0,10,10">
+                                            <StackPanel>
+                                                <TextBlock Text="USCITA" Foreground="#B0B0B0"
+                                                           FontSize="10" FontWeight="SemiBold" CharacterSpacing="40"/>
+                                                <TextBlock Text="{x:Bind Film.ReleaseDate}" Foreground="White"
+                                                           FontSize="16" FontWeight="SemiBold"
+                                                           TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                            </StackPanel>
+                                        </Border>
                                     </StackPanel>
 
-                                    <TextBlock Text="INTRODUZIONE"
-                                               Foreground="{StaticResource OroSW}"
-                                               FontSize="12" FontWeight="SemiBold"
-                                               CharacterSpacing="20"
-                                               Margin="0,16,0,4"/>
-                                    <TextBlock Text="{x:Bind Film.OpeningCrawl}"
-                                               Foreground="White"
-                                               FontSize="13"
-                                               TextWrapping="Wrap"/>
+                                    <!-- Introduzione intera, con le righe unite per paragrafo -->
+                                    <Border BorderBrush="{StaticResource OroSWTenue}"
+                                            BorderThickness="2,0,0,0"
+                                            Padding="12,0,0,0" Margin="0,0,16,12">
+                                        <StackPanel>
+                                            <TextBlock Text="INTRODUZIONE"
+                                                       Foreground="{StaticResource OroSW}"
+                                                       FontSize="11" FontWeight="SemiBold" CharacterSpacing="40"
+                                                       Margin="0,0,0,4"/>
+                                            <TextBlock Text="{x:Bind Introduzione}"
+                                                       Foreground="White" FontSize="14" LineHeight="22"
+                                                       TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                    </Border>
 
-                                    <TextBlock Text="{x:Bind TitoloPersonaggi}"
-                                               Foreground="{StaticResource OroSW}"
-                                               FontSize="12" FontWeight="SemiBold"
-                                               CharacterSpacing="20"
-                                               Margin="0,16,0,4"/>
-                                    <TextBlock Text="{x:Bind TestoPersonaggi}"
-                                               Foreground="White" FontSize="13" TextWrapping="Wrap"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+                                        <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3"
+                                                BorderBrush="{StaticResource OroSWTenue}"
+                                                BorderThickness="2,0,0,0"
+                                                Padding="12,0,0,0" Margin="0,0,16,12">
+                                            <StackPanel>
+                                                <TextBlock Text="{x:Bind TitoloPersonaggi}"
+                                                           Foreground="{StaticResource OroSW}"
+                                                           FontSize="11" FontWeight="SemiBold" CharacterSpacing="40"
+                                                           Margin="0,0,0,4"/>
+                                                <RichTextBlock local:NomiCliccabili.Voci="{x:Bind Personaggi}"
+                                                               Foreground="White" FontSize="14" LineHeight="22"
+                                                               IsTextSelectionEnabled="False"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <Border Grid.Row="1" Grid.Column="0"
+                                                BorderBrush="{StaticResource OroSWTenue}"
+                                                BorderThickness="2,0,0,0"
+                                                Padding="12,0,0,0" Margin="0,0,16,12">
+                                            <StackPanel>
+                                                <TextBlock Text="{x:Bind TitoloPianeti}"
+                                                           Foreground="{StaticResource OroSW}"
+                                                           FontSize="11" FontWeight="SemiBold" CharacterSpacing="40"
+                                                           Margin="0,0,0,4"/>
+                                                <RichTextBlock local:NomiCliccabili.Voci="{x:Bind Pianeti}"
+                                                               Foreground="White" FontSize="14" LineHeight="22"
+                                                               IsTextSelectionEnabled="False"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <Border Grid.Row="1" Grid.Column="1"
+                                                BorderBrush="{StaticResource OroSWTenue}"
+                                                BorderThickness="2,0,0,0"
+                                                Padding="12,0,0,0" Margin="0,0,16,12">
+                                            <StackPanel>
+                                                <TextBlock Text="{x:Bind TitoloRazze}"
+                                                           Foreground="{StaticResource OroSW}"
+                                                           FontSize="11" FontWeight="SemiBold" CharacterSpacing="40"
+                                                           Margin="0,0,0,4"/>
+                                                <RichTextBlock local:NomiCliccabili.Voci="{x:Bind Razze}"
+                                                               Foreground="White" FontSize="14" LineHeight="22"
+                                                               IsTextSelectionEnabled="False"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <Border Grid.Row="1" Grid.Column="2"
+                                                BorderBrush="{StaticResource OroSWTenue}"
+                                                BorderThickness="2,0,0,0"
+                                                Padding="12,0,0,0" Margin="0,0,16,12">
+                                            <StackPanel>
+                                                <TextBlock Text="{x:Bind TitoloAstronavi}"
+                                                           Foreground="{StaticResource OroSW}"
+                                                           FontSize="11" FontWeight="SemiBold" CharacterSpacing="40"
+                                                           Margin="0,0,0,4"/>
+                                                <RichTextBlock local:NomiCliccabili.Voci="{x:Bind Astronavi}"
+                                                               Foreground="White" FontSize="14" LineHeight="22"
+                                                               IsTextSelectionEnabled="False"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
 
-                                    <TextBlock Text="{x:Bind TitoloPianeti}"
-                                               Foreground="{StaticResource OroSW}"
-                                               FontSize="12" FontWeight="SemiBold"
-                                               CharacterSpacing="20"
-                                               Margin="0,16,0,4"/>
-                                    <TextBlock Text="{x:Bind TestoPianeti}"
-                                               Foreground="White" FontSize="13" TextWrapping="Wrap"/>
-
-                                    <TextBlock Text="{x:Bind TitoloRazze}"
-                                               Foreground="{StaticResource OroSW}"
-                                               FontSize="12" FontWeight="SemiBold"
-                                               CharacterSpacing="20"
-                                               Margin="0,16,0,4"/>
-                                    <TextBlock Text="{x:Bind TestoRazze}"
-                                               Foreground="White" FontSize="13" TextWrapping="Wrap"/>
-
-                                    <TextBlock Text="{x:Bind TitoloAstronavi}"
-                                               Foreground="{StaticResource OroSW}"
-                                               FontSize="12" FontWeight="SemiBold"
-                                               CharacterSpacing="20"
-                                               Margin="0,16,0,4"/>
-                                    <TextBlock Text="{x:Bind TestoAstronavi}"
-                                               Foreground="White" FontSize="13" TextWrapping="Wrap"/>
+                                    <Button Content="{x:Bind TestoSalva, Mode=OneWay}"
+                                            Tag="{x:Bind}"
+                                            Click="BtnSalvaFilm_Click"
+                                            HorizontalAlignment="Right"
+                                            Margin="0,0,0,0"
+                                            Foreground="{StaticResource OroSW}"
+                                            Background="{StaticResource VetroTile}"
+                                            BorderBrush="{StaticResource OroSWTenue}"
+                                            Padding="16,6"/>
                                 </StackPanel>
 
                                 <Rectangle Grid.Row="1" Grid.ColumnSpan="2"
                                            Height="1"
                                            Fill="{StaticResource OroSWTenue}"
-                                           Margin="0,24,0,0"/>
+                                           Margin="0,16,0,0"/>
                             </Grid>
                         </DataTemplate>
                     </ListView.ItemTemplate>

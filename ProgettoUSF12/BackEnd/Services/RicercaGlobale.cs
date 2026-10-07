@@ -105,7 +105,8 @@ namespace ProgettoUSF12.BackEnd.Services
             _film = tFilm.Result;
             _indice = indice;
             _completo = tFilm.Result.Count > 0 && tPers.Result.Count > 0 && tPian.Result.Count > 0
-                        && tRazze.Result.Count > 0 && tAstro.Result.Count > 0;
+                        && tRazze.Result.Count > 0 && tAstro.Result.Count > 0
+                        && !GestioneAPI.IsOffline;   // dati salvati usati offline = incompleti: riprova online
         }
 
         private static RisultatoRicerca Crea(TipoRicerca cat, string tipo, string nome, int id, List<int> filmIds) =>
