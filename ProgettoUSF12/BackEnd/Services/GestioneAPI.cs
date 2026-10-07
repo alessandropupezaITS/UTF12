@@ -47,62 +47,42 @@ namespace ProgettoUSF12.BackEnd.Services
         };
 
         // ===================== FILM =====================
+        // Ordine di ricerca per ogni tipo: memoria -> DB locale -> API SWAPI.
+        // Dopo un download completo dall'API, se c'è una sessione attiva (login),
+        // i dati vengono salvati nel DB.
 
-        private static List<Film>? _cacheFilm;
-        private static readonly object _lockFilm = new();
-
-        // I film (e i 6 poster OMDb) si scaricano UNA volta per sessione, poster in parallelo.
         public static List<Film> GetFilms()
         {
-            lock (_lockFilm)
-            {
-                if (_cacheFilm != null) return _cacheFilm;
-
-                var film = ScaricaTutto<Film>("films");
-
-                Parallel.ForEach(film, f =>
+            return CaricaEntita<Film>(
+                "films",
+                ArchivioLocale.CaricaFilm,
+                film => Parallel.ForEach(film, f =>
                 {
                     f.Id = SwapiIdConverter.ExtractId(f.Url);
                     f.PosterUrl = GetPosterOmdb(f.EpisodeId);
-                });
-
-                if (film.Count > 0) _cacheFilm = film;
-                return film;
-            }
+                }),
+                ArchivioLocale.SalvaFilm);
         }
 
         // ===================== PERSONAGGI =====================
 
         public static List<Personaggio> GetPersonaggi(bool conImmagini = true)
         {
-            var personaggi = ScaricaTutto<Personaggio>("people");
+            var lista = CaricaEntita<Personaggio>(
+                "people",
+                ArchivioLocale.CaricaPersonaggi,
+                l => l.ForEach(p => p.Id = SwapiIdConverter.ExtractId(p.Url)),
+                ArchivioLocale.SalvaPersonaggi);
 
-            foreach (var p in personaggi)
-            {
-                p.Id = SwapiIdConverter.ExtractId(p.Url);
-                if (!conImmagini) continue;   // salta le chiamate Fandom (lente)
-                var (main, gallery) = GetImmagini(p.Name, "characters", p.Id);
-                p.MainImage = main;
-                p.ImageGallery = gallery;
-            }
-
-            return personaggi;
+            if (conImmagini) ImmaginiPersonaggi(lista);
+            return lista;
         }
 
         public static List<Personaggio> GetPersonaggiBy(Film film)
         {
-            // Prima filtro (veloce, senza immagini), poi scarico le immagini
-            // Fandom SOLO per le entità di questo film, in parallelo.
             var lista = GetPersonaggi(conImmagini: false)
                 .Where(p => film.PersonaggioIds.Contains(p.Id)).ToList();
-
-            Parallel.ForEach(lista, new ParallelOptions { MaxDegreeOfParallelism = 6 }, p =>
-            {
-                var (main, gallery) = GetImmagini(p.Name, "characters", p.Id);
-                p.MainImage = main;
-                p.ImageGallery = gallery;
-            });
-
+            ImmaginiPersonaggi(lista);
             return lista.OrderBy(p => p.Name).ToList();
         }
 
@@ -110,160 +90,251 @@ namespace ProgettoUSF12.BackEnd.Services
         public static List<Personaggio> GetPersonaggiPerId(int id)
         {
             var lista = GetPersonaggi(conImmagini: false).Where(x => x.Id == id).ToList();
-            foreach (var x in lista)
-            {
-                var (main, gallery) = GetImmagini(x.Name, "characters", x.Id);
-                x.MainImage = main;
-                x.ImageGallery = gallery;
-            }
+            ImmaginiPersonaggi(lista);
             return lista;
         }
+
+        private static void ImmaginiPersonaggi(List<Personaggio> lista) =>
+            CompletaImmagini(lista, "characters",
+                x => x.Name, x => x.Id,
+                x => x.MainImage != null || x.ImageGallery.Count > 0,
+                (x, main, gallery) => { x.MainImage = main; x.ImageGallery = gallery; },
+                ArchivioLocale.SalvaPersonaggi);
 
         // ===================== PIANETI =====================
 
         public static List<Pianeta> GetPianeti(bool conImmagini = true)
         {
-            var pianeti = ScaricaTutto<Pianeta>("planets");
+            var lista = CaricaEntita<Pianeta>(
+                "planets",
+                ArchivioLocale.CaricaPianeti,
+                l => l.ForEach(p => p.Id = SwapiIdConverter.ExtractId(p.Url)),
+                ArchivioLocale.SalvaPianeti);
 
-            foreach (var p in pianeti)
-            {
-                p.Id = SwapiIdConverter.ExtractId(p.Url);
-                if (!conImmagini) continue;   // salta le chiamate Fandom (lente)
-                var (main, gallery) = GetImmagini(p.Name, "planets", p.Id);
-                p.MainImage = main;
-                p.ImageGallery = gallery;
-            }
-
-            return pianeti;
+            if (conImmagini) ImmaginiPianeti(lista);
+            return lista;
         }
 
         public static List<Pianeta> GetPianetiBy(Film film)
         {
-            // Prima filtro (veloce, senza immagini), poi scarico le immagini
-            // Fandom SOLO per le entità di questo film, in parallelo.
             var lista = GetPianeti(conImmagini: false)
                 .Where(p => film.PianetaIds.Contains(p.Id)).ToList();
-
-            Parallel.ForEach(lista, new ParallelOptions { MaxDegreeOfParallelism = 6 }, p =>
-            {
-                var (main, gallery) = GetImmagini(p.Name, "planets", p.Id);
-                p.MainImage = main;
-                p.ImageGallery = gallery;
-            });
-
+            ImmaginiPianeti(lista);
             return lista.OrderBy(p => p.Name).ToList();
         }
 
-        // Un solo elemento (usato dalla ricerca quando l'elemento non ha film collegati).
         public static List<Pianeta> GetPianetiPerId(int id)
         {
             var lista = GetPianeti(conImmagini: false).Where(x => x.Id == id).ToList();
-            foreach (var x in lista)
-            {
-                var (main, gallery) = GetImmagini(x.Name, "planets", x.Id);
-                x.MainImage = main;
-                x.ImageGallery = gallery;
-            }
+            ImmaginiPianeti(lista);
             return lista;
         }
+
+        private static void ImmaginiPianeti(List<Pianeta> lista) =>
+            CompletaImmagini(lista, "planets",
+                x => x.Name, x => x.Id,
+                x => x.MainImage != null || x.ImageGallery.Count > 0,
+                (x, main, gallery) => { x.MainImage = main; x.ImageGallery = gallery; },
+                ArchivioLocale.SalvaPianeti);
 
         // ===================== RAZZE =====================
 
         public static List<Razza> GetRazze(bool conImmagini = true)
         {
-            var razze = ScaricaTutto<Razza>("species");
+            var lista = CaricaEntita<Razza>(
+                "species",
+                ArchivioLocale.CaricaRazze,
+                l => l.ForEach(r => r.Id = SwapiIdConverter.ExtractId(r.Url)),
+                ArchivioLocale.SalvaRazze);
 
-            foreach (var r in razze)
-            {
-                r.Id = SwapiIdConverter.ExtractId(r.Url);
-                if (!conImmagini) continue;   // salta le chiamate Fandom (lente)
-                var (main, gallery) = GetImmagini(r.Name, "species", r.Id);
-                r.MainImage = main;
-                r.ImageGallery = gallery;
-            }
-
-            return razze;
+            if (conImmagini) ImmaginiRazze(lista);
+            return lista;
         }
 
         public static List<Razza> GetRazzeBy(Film film)
         {
-            // Prima filtro (veloce, senza immagini), poi scarico le immagini
-            // Fandom SOLO per le entità di questo film, in parallelo.
             var lista = GetRazze(conImmagini: false)
                 .Where(r => film.RazzaIds.Contains(r.Id)).ToList();
-
-            Parallel.ForEach(lista, new ParallelOptions { MaxDegreeOfParallelism = 6 }, r =>
-            {
-                var (main, gallery) = GetImmagini(r.Name, "species", r.Id);
-                r.MainImage = main;
-                r.ImageGallery = gallery;
-            });
-
+            ImmaginiRazze(lista);
             return lista.OrderBy(r => r.Name).ToList();
         }
 
-        // Un solo elemento (usato dalla ricerca quando l'elemento non ha film collegati).
         public static List<Razza> GetRazzePerId(int id)
         {
             var lista = GetRazze(conImmagini: false).Where(x => x.Id == id).ToList();
-            foreach (var x in lista)
-            {
-                var (main, gallery) = GetImmagini(x.Name, "species", x.Id);
-                x.MainImage = main;
-                x.ImageGallery = gallery;
-            }
+            ImmaginiRazze(lista);
             return lista;
         }
+
+        private static void ImmaginiRazze(List<Razza> lista) =>
+            CompletaImmagini(lista, "species",
+                x => x.Name, x => x.Id,
+                x => x.MainImage != null || x.ImageGallery.Count > 0,
+                (x, main, gallery) => { x.MainImage = main; x.ImageGallery = gallery; },
+                ArchivioLocale.SalvaRazze);
 
         // ===================== ASTRONAVI =====================
 
         public static List<Astronave> GetAstronavi(bool conImmagini = true)
         {
-            var astronavi = ScaricaTutto<Astronave>("starships");
+            var lista = CaricaEntita<Astronave>(
+                "starships",
+                ArchivioLocale.CaricaAstronavi,
+                l => l.ForEach(a => a.Id = SwapiIdConverter.ExtractId(a.Url)),
+                ArchivioLocale.SalvaAstronavi);
 
-            foreach (var a in astronavi)
-            {
-                a.Id = SwapiIdConverter.ExtractId(a.Url);
-                if (!conImmagini) continue;   // salta le chiamate Fandom (lente)
-                var (main, gallery) = GetImmagini(a.Name, "starships", a.Id);
-                a.MainImage = main;
-                a.ImageGallery = gallery;
-            }
-
-            return astronavi;
+            if (conImmagini) ImmaginiAstronavi(lista);
+            return lista;
         }
 
         public static List<Astronave> GetAstronaviBy(Film film)
         {
-            // Prima filtro (veloce, senza immagini), poi scarico le immagini
-            // Fandom SOLO per le entità di questo film, in parallelo.
             var lista = GetAstronavi(conImmagini: false)
                 .Where(a => film.AstronaveIds.Contains(a.Id)).ToList();
-
-            Parallel.ForEach(lista, new ParallelOptions { MaxDegreeOfParallelism = 6 }, a =>
-            {
-                var (main, gallery) = GetImmagini(a.Name, "starships", a.Id);
-                a.MainImage = main;
-                a.ImageGallery = gallery;
-            });
-
+            ImmaginiAstronavi(lista);
             return lista.OrderBy(a => a.Name).ToList();
         }
 
-        // Un solo elemento (usato dalla ricerca quando l'elemento non ha film collegati).
         public static List<Astronave> GetAstronaviPerId(int id)
         {
             var lista = GetAstronavi(conImmagini: false).Where(x => x.Id == id).ToList();
-            foreach (var x in lista)
-            {
-                var (main, gallery) = GetImmagini(x.Name, "starships", x.Id);
-                x.MainImage = main;
-                x.ImageGallery = gallery;
-            }
+            ImmaginiAstronavi(lista);
             return lista;
         }
 
+        private static void ImmaginiAstronavi(List<Astronave> lista) =>
+            CompletaImmagini(lista, "starships",
+                x => x.Name, x => x.Id,
+                x => x.MainImage != null || x.ImageGallery.Count > 0,
+                (x, main, gallery) => { x.MainImage = main; x.ImageGallery = gallery; },
+                ArchivioLocale.SalvaAstronavi);
+
         // ===================== HELPER =====================
+
+        // ===================== DB LOCALE + SESSIONE =====================
+
+        // Sessione attiva = l'utente ha fatto il login (vedi Login.xaml.cs).
+        private static bool SessioneAttiva => !string.IsNullOrWhiteSpace(App.UsernameLoggato);
+
+        private class VoceCache
+        {
+            public object Lista = null!;
+            public bool Salvata;   // true se i dati sono già nel DB
+            public Action Salva = () => { };   // scrive questa lista nel DB
+        }
+
+        private static readonly ConcurrentDictionary<string, VoceCache> _cacheEntita = new();
+
+        // Memoria -> DB -> API. Il salvataggio nel DB avviene solo dopo un download COMPLETO
+        // e solo con la sessione attiva: così nel DB non finiscono mai dati a metà.
+        // Se l'utente fa il login più tardi, il salvataggio avviene alla prima richiesta successiva.
+        private static List<T> CaricaEntita<T>(
+            string endpoint,
+            Func<List<T>> daDb,
+            Action<List<T>> completaDaApi,   // imposta Id (e poster per i film) sui dati appena scaricati
+            Action<List<T>> salvaDb)
+        {
+            lock (_lockSwapi.GetOrAdd(endpoint, _ => new object()))
+            {
+                // 1) Memoria
+                if (_cacheEntita.TryGetValue(endpoint, out var voce))
+                {
+                    SalvaPendenti();   // se nel frattempo hai fatto il login, salva ora
+                    return (List<T>)voce.Lista;
+                }
+
+                // 2) DB locale
+                try
+                {
+                    var salvati = daDb();
+                    if (salvati != null && salvati.Count > 0)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[DB] '{endpoint}': {salvati.Count} elementi letti dal DB");
+                        _cacheEntita[endpoint] = new VoceCache { Lista = salvati, Salvata = true };
+                        return salvati;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"DB non disponibile per '{endpoint}': {ex.Message}");
+                }
+
+                // 3) API
+                var lista = ScaricaTutto<T>(endpoint);
+                if (lista.Count == 0) return lista;
+
+                completaDaApi(lista);
+
+                // ScaricaTutto mette in cache solo i download completi
+                if (_cacheSwapi.ContainsKey(endpoint))
+                {
+                    _cacheEntita[endpoint] = new VoceCache { Lista = lista, Salva = () => salvaDb(lista) };
+                    SalvaPendenti();
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[DB] '{endpoint}': download INCOMPLETO, non salvato");
+                }
+
+                return lista;
+            }
+        }
+
+        private static readonly object _lockSalvataggio = new();
+
+        // Salva nel DB tutte le liste già scaricate ma non ancora salvate (es. scaricate PRIMA del login).
+        // Viene chiamata a ogni accesso a un'entità: appena la sessione è attiva, il DB si allinea.
+        private static void SalvaPendenti()
+        {
+            if (!SessioneAttiva) return;
+
+            lock (_lockSalvataggio)
+            {
+                foreach (var kv in _cacheEntita)
+                {
+                    var voce = kv.Value;
+                    if (voce.Salvata) continue;
+                    try
+                    {
+                        voce.Salva();
+                        voce.Salvata = true;
+                        System.Diagnostics.Debug.WriteLine($"[DB] '{kv.Key}' salvato");
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[DB] salvataggio di '{kv.Key}' FALLITO: {ex.Message}");
+                    }
+                }
+            }
+        }
+
+        // Scarica le immagini (Visual Guide / Fandom) solo per gli elementi che non le hanno
+        // ancora (né da DB né da una chiamata precedente), poi aggiorna il DB se loggato.
+        private static void CompletaImmagini<T>(
+            List<T> lista, string tipo,
+            Func<T, string> nome, Func<T, int> id, Func<T, bool> haImmagini,
+            Action<T, string?, List<string>> imposta,
+            Action<List<T>> salvaDb)
+        {
+            var daCompletare = lista.Where(x => !haImmagini(x)).ToList();
+            if (daCompletare.Count == 0) return;
+
+            Parallel.ForEach(daCompletare, new ParallelOptions { MaxDegreeOfParallelism = 6 }, x =>
+            {
+                var (main, gallery) = GetImmagini(nome(x), tipo, id(x));
+                imposta(x, main, gallery);
+            });
+
+            var aggiornati = daCompletare.Where(haImmagini).ToList();
+            if (aggiornati.Count == 0 || !SessioneAttiva) return;
+
+            try { salvaDb(aggiornati); }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Salvataggio immagini nel DB fallito: {ex.Message}");
+            }
+        }
+
 
         // Cache: ogni endpoint SWAPI si scarica UNA volta per sessione. Prima veniva riscaricato
         // per intero a ogni chiamata (anche solo per filtrare le entità di un film).
@@ -285,8 +356,7 @@ namespace ProgettoUSF12.BackEnd.Services
                 {
                     while (!string.IsNullOrEmpty(url))
                     {
-                        var pagina = _http.GetFromJsonAsync<SwapiPagina<T>>(url, _jsonOptions)
-                            .GetAwaiter().GetResult();
+                        var pagina = ScaricaPagina<T>(url);
 
                         if (pagina?.Results == null) break;
 
@@ -304,6 +374,24 @@ namespace ProgettoUSF12.BackEnd.Services
                     _cacheSwapi[endpointSwapi] = risultati;
 
                 return risultati;
+            }
+        }
+
+        // Fino a 3 tentativi per pagina: un errore momentaneo non deve rendere incompleto
+        // l'intero download (e quindi impedire il salvataggio nel DB).
+        private static SwapiPagina<T>? ScaricaPagina<T>(string url)
+        {
+            for (int tentativo = 1; ; tentativo++)
+            {
+                try
+                {
+                    return _http.GetFromJsonAsync<SwapiPagina<T>>(url, _jsonOptions)
+                        .GetAwaiter().GetResult();
+                }
+                catch when (tentativo < 3)
+                {
+                    System.Threading.Thread.Sleep(500 * tentativo);
+                }
             }
         }
 
